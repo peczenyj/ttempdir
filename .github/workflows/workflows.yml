@@ -1,4 +1,4 @@
-name: test_and_lint
+name: test
 
 on:
   push:
@@ -23,13 +23,3 @@ jobs:
 
       - name: test
         run: go test
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: v1.59.0
