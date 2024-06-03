@@ -20,6 +20,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
+      - run: go mod tidy
+      - run: go version
+      - run: go fix ./...
+      - run: go vet -all ./...
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
