@@ -13,7 +13,7 @@ import (
 const (
 	doc = "ttempdir is analyzer that detects using os.MkdirTemp, ioutil.TempDir or os.TempDir instead of t.TempDir since Go1.17"
 
-	defaultMaxCheckCallExprRecursionLevel = 5 // arbitrary value, just to avoid too many recursion calls
+	defaultMaxRecursionLevel = 5 // arbitrary value, just to avoid too many recursion calls
 )
 
 // Analyzer is ttempdir analyzer
@@ -35,7 +35,7 @@ var (
 
 func init() {
 	Analyzer.Flags.BoolVar(&aflag, A, false, "the all option will run against all method in test file")
-	Analyzer.Flags.UintVar(&mrlFlag, MRL, defaultMaxCheckCallExprRecursionLevel, "max recursion level when checking nested arg calls")
+	Analyzer.Flags.UintVar(&mrlFlag, MRL, defaultMaxRecursionLevel, "max recursion level when checking nested arg calls")
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
