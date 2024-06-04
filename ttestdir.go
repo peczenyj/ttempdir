@@ -30,12 +30,12 @@ var (
 	A       = "all"
 	aflag   bool
 	MRL     = "max-recursion-level"
-	mrlFlag int
+	mrlFlag uint
 )
 
 func init() {
 	Analyzer.Flags.BoolVar(&aflag, A, false, "the all option will run against all method in test file")
-	Analyzer.Flags.IntVar(&mrlFlag, MRL, defaultMaxCheckCallExprRecursionLevel, "max recursion level when checking nested arg calls")
+	Analyzer.Flags.UintVar(&mrlFlag, MRL, defaultMaxCheckCallExprRecursionLevel, "max recursion level when checking nested arg calls")
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
@@ -107,7 +107,7 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName st
 func checkCallExprRecursive(pass *analysis.Pass,
 	callExpr *ast.CallExpr,
 	funcName, argName string,
-	currentRecursionLevel int,
+	currentRecursionLevel uint,
 ) {
 	if currentRecursionLevel == 0 {
 		return
