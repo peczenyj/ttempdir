@@ -1,4 +1,4 @@
-.PHONY: info fmt goimports gofumpt lint tidy go_fix go_vet golangci tests coverage
+.PHONY: info fmt goimports gofumpt lint tidy go_fix go_vet golangci test coverage
 
 info:
 	go version
@@ -27,7 +27,7 @@ go_vet:
 golangci:
 	golangci-lint run ./...
 
-tests:
+test:
 	go test -v ./...
 
 coverage:
