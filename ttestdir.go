@@ -13,7 +13,7 @@ import (
 const (
 	doc = "ttempdir is analyzer that detects using os.MkdirTemp, ioutil.TempDir or os.TempDir instead of t.TempDir since Go1.17"
 
-	defaultMaxCheckCallExprRecursionLevel = 50 // arbitrary value, just to avoid too many recursion calls
+	defaultMaxCheckCallExprRecursionLevel = 5 // arbitrary value, just to avoid too many recursion calls
 )
 
 // Analyzer is ttempdir analyzer
