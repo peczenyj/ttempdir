@@ -91,18 +91,30 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName st
 	if !ok {
 		return false
 	}
+
+	checkCallExprRecursive(pass, callExpr, funcName, argName)
+
+	return true
+}
+
+func checkCallExprRecursive(pass *analysis.Pass, callExpr *ast.CallExpr, funcName, argName string) {
+	for _, arg := range callExpr.Args {
+		if argCallExpr, ok := arg.(*ast.CallExpr); ok {
+			checkCallExprRecursive(pass, argCallExpr, funcName, argName)
+		}
+	}
+
 	fun, ok := callExpr.Fun.(*ast.SelectorExpr)
 	if !ok {
-		return false
+		return
 	}
 	x, ok := fun.X.(*ast.Ident)
 	if !ok {
-		return false
+		return
 	}
 
-	checkTargetNames(pass, stmt, funcName, argName, fun, x)
+	checkTargetNames(pass, callExpr, funcName, argName, fun, x)
 
-	return true
 }
 
 func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, funcName, argName string) bool {

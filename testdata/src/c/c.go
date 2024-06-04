@@ -19,6 +19,7 @@ func setup() {
 func F(t *testing.T) {
 	setup()
 	os.TempDir()                        // want "os\\.TempDir\\(\\) can be replaced by `t\\.TempDir\\(\\)` in F"
+	t.Log(os.TempDir())                 // want "os\\.TempDir\\(\\) can be replaced by `t\\.TempDir\\(\\)` in F"
 	_ = os.TempDir()                    // want "os\\.TempDir\\(\\) can be replaced by `t\\.TempDir\\(\\)` in F"
 	if dir := os.TempDir(); dir != "" { // want "os\\.TempDir\\(\\) can be replaced by `t\\.TempDir\\(\\)` in F"
 		_ = dir
