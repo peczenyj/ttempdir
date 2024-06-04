@@ -39,54 +39,75 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		(*ast.FuncLit)(nil),
 	}
 
+	targetNamesToSubstitute := []string{
+		"ioutil.TempDir",
+		"os.MkdirTemp",
+	}
+
 	inspect.Preorder(nodeFilter, func(n ast.Node) {
 		switch n := n.(type) {
 		case *ast.FuncDecl:
-			checkFuncDecl(pass, n, pass.Fset.File(n.Pos()).Name())
+			checkFuncDecl(pass, n, pass.Fset.File(n.Pos()).Name(), targetNamesToSubstitute...)
 		case *ast.FuncLit:
-			checkFuncLit(pass, n, pass.Fset.File(n.Pos()).Name())
+			checkFuncLit(pass, n, pass.Fset.File(n.Pos()).Name(), targetNamesToSubstitute...)
 		}
 	})
 
 	return nil, nil
 }
 
-func checkFuncDecl(pass *analysis.Pass, f *ast.FuncDecl, fileName string) {
+func checkFuncDecl(pass *analysis.Pass,
+	f *ast.FuncDecl,
+	fileName string,
+	targetNamesToSubstitute ...string,
+) {
 	argName, ok := targetRunner(f.Type.Params.List, fileName)
 	if !ok {
 		return
 	}
-	checkStmts(pass, f.Body.List, f.Name.Name, argName)
+	checkStmts(pass, f.Body.List, f.Name.Name, argName, targetNamesToSubstitute...)
 }
 
-func checkFuncLit(pass *analysis.Pass, f *ast.FuncLit, fileName string) {
+func checkFuncLit(pass *analysis.Pass,
+	f *ast.FuncLit,
+	fileName string,
+	targetNamesToSubstitute ...string,
+) {
 	argName, ok := targetRunner(f.Type.Params.List, fileName)
 	if !ok {
 		return
 	}
-	checkStmts(pass, f.Body.List, "anonymous function", argName)
+	checkStmts(pass, f.Body.List, "anonymous function", argName, targetNamesToSubstitute...)
 }
 
-func checkStmts(pass *analysis.Pass, stmts []ast.Stmt, funcName, argName string) {
+func checkStmts(pass *analysis.Pass,
+	stmts []ast.Stmt,
+	funcName, argName string,
+	targetNamesToSubstitute ...string,
+) {
 	for _, stmt := range stmts {
 		switch stmt := stmt.(type) {
 		case *ast.ExprStmt:
-			if !checkExprStmt(pass, stmt, funcName, argName) {
+			if !checkExprStmt(pass, stmt, funcName, argName, targetNamesToSubstitute...) {
 				continue
 			}
 		case *ast.IfStmt:
-			if !checkIfStmt(pass, stmt, funcName, argName) {
+			if !checkIfStmt(pass, stmt, funcName, argName, targetNamesToSubstitute...) {
 				continue
 			}
 		case *ast.AssignStmt:
-			if !checkAssignStmt(pass, stmt, funcName, argName) {
+			if !checkAssignStmt(pass, stmt, funcName, argName, targetNamesToSubstitute...) {
 				continue
 			}
 		}
 	}
 }
 
-func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName string) bool {
+func checkExprStmt(pass *analysis.Pass,
+	stmt *ast.ExprStmt,
+	funcName, argName string,
+	targetNamesToSubstitute ...string,
+) bool {
 	callExpr, ok := stmt.X.(*ast.CallExpr)
 	if !ok {
 		return false
@@ -100,12 +121,16 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName st
 		return false
 	}
 
-	checkTargetNames(pass, stmt, funcName, argName, fun, x, "ioutil.TempDir", "os.MkdirTemp")
+	checkTargetNames(pass, stmt, funcName, argName, fun, x, targetNamesToSubstitute...)
 
 	return true
 }
 
-func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, funcName, argName string) bool {
+func checkIfStmt(pass *analysis.Pass,
+	stmt *ast.IfStmt, funcName,
+	argName string,
+	targetNamesToSubstitute ...string,
+) bool {
 	assignStmt, ok := stmt.Init.(*ast.AssignStmt)
 	if !ok {
 		return false
@@ -123,12 +148,16 @@ func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, funcName, argName string
 		return false
 	}
 
-	checkTargetNames(pass, stmt, funcName, argName, fun, x, "ioutil.TempDir", "os.MkdirTemp")
+	checkTargetNames(pass, stmt, funcName, argName, fun, x, targetNamesToSubstitute...)
 
 	return true
 }
 
-func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, funcName, argName string) bool {
+func checkAssignStmt(pass *analysis.Pass,
+	stmt *ast.AssignStmt,
+	funcName, argName string,
+	targetNamesToSubstitute ...string,
+) bool {
 	rhs, ok := stmt.Rhs[0].(*ast.CallExpr)
 	if !ok {
 		return false
@@ -142,7 +171,7 @@ func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, funcName, argNam
 		return false
 	}
 
-	checkTargetNames(pass, stmt, funcName, argName, fun, x, "ioutil.TempDir", "os.MkdirTemp")
+	checkTargetNames(pass, stmt, funcName, argName, fun, x, targetNamesToSubstitute...)
 
 	return true
 }
