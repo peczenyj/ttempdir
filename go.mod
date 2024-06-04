@@ -1,6 +1,6 @@
 module github.com/peczenyj/ttempdir
 
-go 1.22
+go 1.21
 
 require (
 	github.com/gostaticanalysis/testutil v0.4.0
