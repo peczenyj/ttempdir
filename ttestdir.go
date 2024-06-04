@@ -10,7 +10,11 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 )
 
-const doc = "ttempdir is analyzer that detects using os.MkdirTemp, ioutil.TempDir or os.TempDir instead of t.TempDir since Go1.17"
+const (
+	doc = "ttempdir is analyzer that detects using os.MkdirTemp, ioutil.TempDir or os.TempDir instead of t.TempDir since Go1.17"
+
+	defaultMaxCheckCallExprRecursionLevel = 50 // arbitrary value, just to avoid too many recursion calls
+)
 
 // Analyzer is ttempdir analyzer
 var Analyzer = &analysis.Analyzer{
@@ -23,12 +27,15 @@ var Analyzer = &analysis.Analyzer{
 }
 
 var (
-	A     = "all"
-	aflag bool
+	A       = "all"
+	aflag   bool
+	MRL     = "max-recursion-level"
+	mrlFlag int
 )
 
 func init() {
 	Analyzer.Flags.BoolVar(&aflag, A, false, "the all option will run against all method in test file")
+	Analyzer.Flags.IntVar(&mrlFlag, MRL, defaultMaxCheckCallExprRecursionLevel, "max recursion level when checking nested arg calls")
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
@@ -92,15 +99,23 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName st
 		return false
 	}
 
-	checkCallExprRecursive(pass, callExpr, funcName, argName)
+	checkCallExprRecursive(pass, callExpr, funcName, argName, mrlFlag)
 
 	return true
 }
 
-func checkCallExprRecursive(pass *analysis.Pass, callExpr *ast.CallExpr, funcName, argName string) {
+func checkCallExprRecursive(pass *analysis.Pass,
+	callExpr *ast.CallExpr,
+	funcName, argName string,
+	currentRecursionLevel int,
+) {
+	if currentRecursionLevel == 0 {
+		return
+	}
+
 	for _, arg := range callExpr.Args {
 		if argCallExpr, ok := arg.(*ast.CallExpr); ok {
-			checkCallExprRecursive(pass, argCallExpr, funcName, argName)
+			checkCallExprRecursive(pass, argCallExpr, funcName, argName, currentRecursionLevel-1)
 		}
 	}
 
@@ -114,7 +129,6 @@ func checkCallExprRecursive(pass *analysis.Pass, callExpr *ast.CallExpr, funcNam
 	}
 
 	checkTargetNames(pass, callExpr, funcName, argName, fun, x)
-
 }
 
 func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, funcName, argName string) bool {
