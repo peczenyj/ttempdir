@@ -10,7 +10,7 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 )
 
-const doc = "ttempdir is analyzer that detects using os.MkdirTemp or ioutil.TempDir instead of t.TempDir since Go1.15"
+const doc = "ttempdir is analyzer that detects using os.MkdirTemp, ioutil.TempDir or os.TempDir instead of t.TempDir since Go1.17"
 
 // Analyzer is ttempdir analyzer
 var Analyzer = &analysis.Analyzer{
@@ -100,7 +100,7 @@ func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName st
 		return false
 	}
 
-	checkTargetNames(pass, stmt, funcName, argName, fun, x, "ioutil.TempDir", "os.MkdirTemp")
+	checkTargetNames(pass, stmt, funcName, argName, fun, x)
 
 	return true
 }
@@ -123,7 +123,7 @@ func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, funcName, argName string
 		return false
 	}
 
-	checkTargetNames(pass, stmt, funcName, argName, fun, x, "ioutil.TempDir", "os.MkdirTemp")
+	checkTargetNames(pass, stmt, funcName, argName, fun, x)
 
 	return true
 }
@@ -142,7 +142,7 @@ func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, funcName, argNam
 		return false
 	}
 
-	checkTargetNames(pass, stmt, funcName, argName, fun, x, "ioutil.TempDir", "os.MkdirTemp")
+	checkTargetNames(pass, stmt, funcName, argName, fun, x)
 
 	return true
 }
@@ -152,19 +152,17 @@ func checkTargetNames(pass *analysis.Pass,
 	funcName, argName string,
 	fun *ast.SelectorExpr,
 	x *ast.Ident,
-	targetNamesToSubstitute ...string,
 ) {
 	targetName := x.Name + "." + fun.Sel.Name
 
-	for _, toSubstitute := range targetNamesToSubstitute {
-		if targetName == toSubstitute {
-			if argName == "" {
-				argName = "testing"
-			}
-			pass.Reportf(stmt.Pos(), "%s() can be replaced by `%s.TempDir()` in %s", toSubstitute, argName, funcName)
-
-			return
+	switch targetName {
+	case "ioutil.TempDir", "os.MkdirTemp", "os.TempDir":
+		if argName == "" {
+			argName = "testing"
 		}
+		pass.Reportf(stmt.Pos(), "%s() can be replaced by `%s.TempDir()` in %s", targetName, argName, funcName)
+
+		return
 	}
 }
 
