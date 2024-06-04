@@ -18,7 +18,7 @@ This code is based on [tenv](https://github.com/sivchari/tenv) analyzer.
 ## Instruction
 
 ```sh
-go install github.com/peczenyj/ttempdir/cmd/ttempdir
+go install github.com/peczenyj/ttempdir/cmd/ttempdir@latest
 ```
 
 ## Usage
