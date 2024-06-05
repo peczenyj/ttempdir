@@ -24,14 +24,14 @@ func TestAnalyzer(t *testing.T) {
 		{
 			label: "flag all=true",
 			flags: map[string]string{
-				analyzer.A: "true",
+				analyzer.FlagAllName: "true",
 			},
 			patterns: []string{"d"},
 		},
 		{
 			label: "flag max-recursion-level=10",
 			flags: map[string]string{
-				analyzer.MRL: "10",
+				analyzer.FlagMaxRecursionLevelName: "10",
 			},
 			patterns: []string{"e"},
 		},
