@@ -106,6 +106,8 @@ func (ta *ttempdirAnalyzer) checkStmts(pass *analysis.Pass, stmts []ast.Stmt, fu
 			if !checkAssignStmt(pass, stmt, funcName, argName) {
 				continue
 			}
+		case *ast.ForStmt:
+			ta.checkForStmt(pass, stmt, funcName, argName)
 		}
 	}
 }
@@ -188,6 +190,10 @@ func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, funcName, argNam
 	checkTargetNames(pass, stmt, funcName, argName, fun, x)
 
 	return true
+}
+
+func (ta *ttempdirAnalyzer) checkForStmt(pass *analysis.Pass, stmt *ast.ForStmt, funcName, argName string) {
+	ta.checkStmts(pass, stmt.Body.List, funcName, argName)
 }
 
 func checkTargetNames(pass *analysis.Pass,
