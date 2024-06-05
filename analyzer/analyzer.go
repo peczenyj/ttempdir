@@ -209,7 +209,7 @@ func checkTargetNames(pass *analysis.Pass,
 		if argName == "" {
 			argName = "testing"
 		}
-		pass.Reportf(stmt.Pos(), "%s() can be replaced by `%s.TempDir()` in %s", targetName, argName, funcName)
+		pass.Reportf(stmt.Pos(), "%s() should be replaced by `%s.TempDir()` in %s", targetName, argName, funcName)
 
 		return
 	}

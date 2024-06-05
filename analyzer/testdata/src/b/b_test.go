@@ -10,8 +10,8 @@ var (
 )
 
 func testsetup() {
-	ioutil.TempDir("a", "b")           // if -all = true, want  "ioutil\\.TempDir\\(\\) can be replaced by `testing\\.TempDir\\(\\)` in testsetup"
-	_, err := ioutil.TempDir("a", "b") // if -all = true, want  "ioutil\\.TempDir\\(\\) can be replaced by `testing\\.TempDir\\(\\)` in testsetup"
+	ioutil.TempDir("a", "b")           // if -all = true, want  "ioutil\\.TempDir\\(\\) should be replaced by `testing\\.TempDir\\(\\)` in testsetup"
+	_, err := ioutil.TempDir("a", "b") // if -all = true, want  "ioutil\\.TempDir\\(\\) should be replaced by `testing\\.TempDir\\(\\)` in testsetup"
 	if err != nil {
 		_ = err
 	}
@@ -20,38 +20,38 @@ func testsetup() {
 
 func TestF(t *testing.T) {
 	testsetup()
-	ioutil.TempDir("a", "b")           // want "ioutil\\.TempDir\\(\\) can be replaced by `t\\.TempDir\\(\\)` in TestF"
-	_, err := ioutil.TempDir("a", "b") // want "ioutil\\.TempDir\\(\\) can be replaced by `t\\.TempDir\\(\\)` in TestF"
+	ioutil.TempDir("a", "b")           // want "ioutil\\.TempDir\\(\\) should be replaced by `t\\.TempDir\\(\\)` in TestF"
+	_, err := ioutil.TempDir("a", "b") // want "ioutil\\.TempDir\\(\\) should be replaced by `t\\.TempDir\\(\\)` in TestF"
 	_ = err
-	if _, err := ioutil.TempDir("a", "b"); err != nil { // want "ioutil\\.TempDir\\(\\) can be replaced by `t\\.TempDir\\(\\)` in TestF"
+	if _, err := ioutil.TempDir("a", "b"); err != nil { // want "ioutil\\.TempDir\\(\\) should be replaced by `t\\.TempDir\\(\\)` in TestF"
 		_ = err
 	}
 }
 
 func BenchmarkF(b *testing.B) {
 	TB(b)
-	ioutil.TempDir("a", "b")           // want "ioutil\\.TempDir\\(\\) can be replaced by `b\\.TempDir\\(\\)` in BenchmarkF"
-	_, err := ioutil.TempDir("a", "b") // want "ioutil\\.TempDir\\(\\) can be replaced by `b\\.TempDir\\(\\)` in BenchmarkF"
+	ioutil.TempDir("a", "b")           // want "ioutil\\.TempDir\\(\\) should be replaced by `b\\.TempDir\\(\\)` in BenchmarkF"
+	_, err := ioutil.TempDir("a", "b") // want "ioutil\\.TempDir\\(\\) should be replaced by `b\\.TempDir\\(\\)` in BenchmarkF"
 	_ = err
-	if _, err := ioutil.TempDir("a", "b"); err != nil { // want "ioutil\\.TempDir\\(\\) can be replaced by `b\\.TempDir\\(\\)` in BenchmarkF"
+	if _, err := ioutil.TempDir("a", "b"); err != nil { // want "ioutil\\.TempDir\\(\\) should be replaced by `b\\.TempDir\\(\\)` in BenchmarkF"
 		_ = err
 	}
 }
 
 func TB(tb testing.TB) {
-	ioutil.TempDir("a", "b")           // want "ioutil\\.TempDir\\(\\) can be replaced by `tb\\.TempDir\\(\\)` in TB"
-	_, err := ioutil.TempDir("a", "b") // want "ioutil\\.TempDir\\(\\) can be replaced by `tb\\.TempDir\\(\\)` in TB"
+	ioutil.TempDir("a", "b")           // want "ioutil\\.TempDir\\(\\) should be replaced by `tb\\.TempDir\\(\\)` in TB"
+	_, err := ioutil.TempDir("a", "b") // want "ioutil\\.TempDir\\(\\) should be replaced by `tb\\.TempDir\\(\\)` in TB"
 	_ = err
-	if _, err := ioutil.TempDir("a", "b"); err != nil { // want "ioutil\\.TempDir\\(\\) can be replaced by `tb\\.TempDir\\(\\)` in TB"
+	if _, err := ioutil.TempDir("a", "b"); err != nil { // want "ioutil\\.TempDir\\(\\) should be replaced by `tb\\.TempDir\\(\\)` in TB"
 		_ = err
 	}
 }
 
 func FuzzF(f *testing.F) {
-	ioutil.TempDir("a", "b")           // want "ioutil\\.TempDir\\(\\) can be replaced by `f\\.TempDir\\(\\)` in FuzzF"
-	_, err := ioutil.TempDir("a", "b") // want "ioutil\\.TempDir\\(\\) can be replaced by `f\\.TempDir\\(\\)` in FuzzF"
+	ioutil.TempDir("a", "b")           // want "ioutil\\.TempDir\\(\\) should be replaced by `f\\.TempDir\\(\\)` in FuzzF"
+	_, err := ioutil.TempDir("a", "b") // want "ioutil\\.TempDir\\(\\) should be replaced by `f\\.TempDir\\(\\)` in FuzzF"
 	_ = err
-	if _, err := ioutil.TempDir("a", "b"); err != nil { // want "ioutil\\.TempDir\\(\\) can be replaced by `f\\.TempDir\\(\\)` in FuzzF"
+	if _, err := ioutil.TempDir("a", "b"); err != nil { // want "ioutil\\.TempDir\\(\\) should be replaced by `f\\.TempDir\\(\\)` in FuzzF"
 		_ = err
 	}
 }
@@ -59,10 +59,10 @@ func FuzzF(f *testing.F) {
 func TestFunctionLiteral(t *testing.T) {
 	testsetup()
 	t.Run("test", func(t *testing.T) {
-		ioutil.TempDir("a", "b")           // want "ioutil\\.TempDir\\(\\) can be replaced by `t\\.TempDir\\(\\)` in anonymous function"
-		_, err := ioutil.TempDir("a", "b") // want "ioutil\\.TempDir\\(\\) can be replaced by `t\\.TempDir\\(\\)` in anonymous function"
+		ioutil.TempDir("a", "b")           // want "ioutil\\.TempDir\\(\\) should be replaced by `t\\.TempDir\\(\\)` in anonymous function"
+		_, err := ioutil.TempDir("a", "b") // want "ioutil\\.TempDir\\(\\) should be replaced by `t\\.TempDir\\(\\)` in anonymous function"
 		_ = err
-		if _, err := ioutil.TempDir("a", "b"); err != nil { // want "ioutil\\.TempDir\\(\\) can be replaced by `t\\.TempDir\\(\\)` in anonymous function"
+		if _, err := ioutil.TempDir("a", "b"); err != nil { // want "ioutil\\.TempDir\\(\\) should be replaced by `t\\.TempDir\\(\\)` in anonymous function"
 			_ = err
 		}
 	})
