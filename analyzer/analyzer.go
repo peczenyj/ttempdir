@@ -66,35 +66,46 @@ func (ta *ttempdirAnalyzer) Run(pass *analysis.Pass) (interface{}, error) {
 	inspect.Preorder(nodeFilter, func(node ast.Node) {
 		switch function := node.(type) {
 		case *ast.FuncDecl:
-			ta.checkFuncDecl(pass, function)
+			ta.checkFunctionDeclaration(pass, function)
 		case *ast.FuncLit:
-			ta.checkFuncLit(pass, function)
+			ta.checkFunctionLiteral(pass, function, "anonymous function")
 		}
 	})
 
 	return nil, nil
 }
 
-func (ta *ttempdirAnalyzer) checkFuncDecl(pass *analysis.Pass, function *ast.FuncDecl) {
-	ta.checkGenericFunctionCall(pass, function.Pos(), function.Type, function.Body, function.Name.Name)
+func (ta *ttempdirAnalyzer) checkFunctionDeclaration(pass *analysis.Pass,
+	function *ast.FuncDecl,
+) {
+	// rewrite function declaration as function literal
+	functionLiteral := &ast.FuncLit{
+		Type: function.Type,
+		Body: function.Body,
+	}
+
+	ta.checkFunctionLiteral(pass, functionLiteral, function.Name.Name)
 }
 
-func (ta *ttempdirAnalyzer) checkFuncLit(pass *analysis.Pass, function *ast.FuncLit) {
-	ta.checkGenericFunctionCall(pass, function.Pos(), function.Type, function.Body, "anonymous function")
-}
-
-func (ta *ttempdirAnalyzer) checkGenericFunctionCall(pass *analysis.Pass,
-	functionPosition token.Pos,
-	functionType *ast.FuncType,
-	functionBody *ast.BlockStmt,
+func (ta *ttempdirAnalyzer) checkFunctionLiteral(pass *analysis.Pass,
+	function *ast.FuncLit,
 	targetFunctionName string,
 ) {
-	fileName := pass.Fset.File(functionPosition).Name()
-	if variableOrPackageName, found := ta.targetRunner(functionType.Params, fileName); found {
+	variableOrPackageName, found := ta.targetRunner(function.Type.Params,
+		isFilenameFollowingTestingConventions(pass, function.Pos()),
+	)
+
+	if found {
 		reporterBuilder := newReporterBuilder(pass, variableOrPackageName, targetFunctionName)
 
-		ta.checkStmts(reporterBuilder, functionBody.List)
+		ta.checkStmts(reporterBuilder, function.Body.List)
 	}
+}
+
+func isFilenameFollowingTestingConventions(pass *analysis.Pass, pos token.Pos) bool {
+	fileName := pass.Fset.File(pos).Name()
+
+	return strings.HasSuffix(fileName, "_test.go")
 }
 
 func (ta *ttempdirAnalyzer) checkStmts(reporterBuilder ReporterBuilder,
@@ -211,7 +222,7 @@ func (ta *ttempdirAnalyzer) checkIdentifiers(reporter Reporter,
 
 func (ta *ttempdirAnalyzer) targetRunner(
 	functionTypeParams *ast.FieldList,
-	fileName string,
+	isTestFile bool,
 ) (variableOrPackageName string, found bool) {
 	for _, field := range functionTypeParams.List {
 		switch typ := field.Type.(type) {
@@ -226,7 +237,7 @@ func (ta *ttempdirAnalyzer) targetRunner(
 		}
 	}
 
-	if ta.all && strings.HasSuffix(fileName, "_test.go") {
+	if ta.all && isTestFile {
 		return "", true
 	}
 
