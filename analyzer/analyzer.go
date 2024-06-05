@@ -14,10 +14,13 @@ import (
 const (
 	doc = "ttempdir is analyzer that detects using os.MkdirTemp, ioutil.TempDir or os.TempDir instead of t.TempDir since Go1.17"
 
+	defaultAll               = false
 	defaultMaxRecursionLevel = 5 // arbitrary value, just to avoid too many recursion calls
 
-	A   = "all"
-	MRL = "max-recursion-level"
+	// FlagAllName name of the 'all' flag in cli
+	FlagAllName = "all"
+	// FlagMaxRecursionLevelName name of the 'max-recursion-level' flag in cli
+	FlagMaxRecursionLevelName = "max-recursion-level"
 )
 
 type ttempdirAnalyzer struct {
@@ -25,9 +28,11 @@ type ttempdirAnalyzer struct {
 	mrlFlag uint
 }
 
+// New analyzer constructor.
+// Will bind flagset all and max-recursion-level
 func New() *analysis.Analyzer {
 	ta := &ttempdirAnalyzer{
-		aflag:   false,
+		aflag:   defaultAll,
 		mrlFlag: defaultMaxRecursionLevel,
 	}
 
@@ -46,8 +51,8 @@ func New() *analysis.Analyzer {
 }
 
 func (ta *ttempdirAnalyzer) bind(flagSet *flag.FlagSet) {
-	flagSet.BoolVar(&ta.aflag, A, ta.aflag, "the all option will run against all method in test file")
-	flagSet.UintVar(&ta.mrlFlag, MRL, ta.mrlFlag, "max recursion level when checking nested arg calls")
+	flagSet.BoolVar(&ta.aflag, FlagAllName, ta.aflag, "the all option will run against all method in test file")
+	flagSet.UintVar(&ta.mrlFlag, FlagMaxRecursionLevelName, ta.mrlFlag, "max recursion level when checking nested arg calls")
 }
 
 func (ta *ttempdirAnalyzer) run(pass *analysis.Pass) (interface{}, error) {
