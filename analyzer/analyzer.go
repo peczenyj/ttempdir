@@ -3,6 +3,7 @@ package analyzer
 import (
 	"flag"
 	"go/ast"
+	"go/token"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -75,68 +76,65 @@ func (ta *ttempdirAnalyzer) Run(pass *analysis.Pass) (interface{}, error) {
 }
 
 func (ta *ttempdirAnalyzer) checkFuncDecl(pass *analysis.Pass, function *ast.FuncDecl) {
-	ta.checkGenericFunctionCall(pass, function, function.Type, function.Body, function.Name.Name)
+	ta.checkGenericFunctionCall(pass, function.Pos(), function.Type, function.Body, function.Name.Name)
 }
 
 func (ta *ttempdirAnalyzer) checkFuncLit(pass *analysis.Pass, function *ast.FuncLit) {
-	ta.checkGenericFunctionCall(pass, function, function.Type, function.Body, "anonymous function")
+	ta.checkGenericFunctionCall(pass, function.Pos(), function.Type, function.Body, "anonymous function")
 }
 
 func (ta *ttempdirAnalyzer) checkGenericFunctionCall(pass *analysis.Pass,
-	function ast.Node,
+	functionPosition token.Pos,
 	functionType *ast.FuncType,
 	functionBody *ast.BlockStmt,
-	functionName string,
+	targetFunctionName string,
 ) {
-	fileName := pass.Fset.File(function.Pos()).Name()
+	fileName := pass.Fset.File(functionPosition).Name()
 	if variableOrPackageName, found := ta.targetRunner(functionType.Params, fileName); found {
-		ta.checkStmts(pass, functionBody.List, variableOrPackageName, functionName)
+		reporterBuilder := newReporterBuilder(pass, variableOrPackageName, targetFunctionName)
+
+		ta.checkStmts(reporterBuilder, functionBody.List)
 	}
 }
 
-func (ta *ttempdirAnalyzer) checkStmts(pass *analysis.Pass,
+func (ta *ttempdirAnalyzer) checkStmts(reporterBuilder ReporterBuilder,
 	stmts []ast.Stmt,
-	variableOrPackageName, targetFunctionName string,
 ) {
 	for _, stmt := range stmts {
-		ta.checkSingleStmt(pass, stmt, variableOrPackageName, targetFunctionName)
+		ta.checkSingleStmt(reporterBuilder, stmt)
 	}
 }
 
-func (ta *ttempdirAnalyzer) checkSingleStmt(pass *analysis.Pass,
+func (ta *ttempdirAnalyzer) checkSingleStmt(reporterBuilder ReporterBuilder,
 	stmt ast.Stmt,
-	variableOrPackageName, targetFunctionName string,
 ) {
 	switch stmt := stmt.(type) {
 	case *ast.ExprStmt:
-		ta.checkExprStmt(pass, stmt, variableOrPackageName, targetFunctionName)
+		ta.checkExprStmt(reporterBuilder, stmt)
 	case *ast.IfStmt:
-		checkIfStmt(pass, stmt, variableOrPackageName, targetFunctionName)
+		ta.checkIfStmt(reporterBuilder, stmt)
 	case *ast.AssignStmt:
-		checkAssignStmt(pass, stmt, variableOrPackageName, targetFunctionName)
+		reporter := reporterBuilder.Build(stmt.Pos())
+
+		ta.checkAssignStmt(reporter, stmt)
 	case *ast.ForStmt:
-		ta.checkForStmt(pass, stmt, variableOrPackageName, targetFunctionName)
+		ta.checkForStmt(reporterBuilder, stmt)
 	}
 }
 
-func (ta *ttempdirAnalyzer) checkExprStmt(pass *analysis.Pass,
+func (ta *ttempdirAnalyzer) checkExprStmt(reporterBuilder ReporterBuilder,
 	stmt *ast.ExprStmt,
-	variableOrPackageName,
-	targetFunctionName string,
 ) {
 	if callExpr, ok := stmt.X.(*ast.CallExpr); ok {
-		checkCallExprRecursive(pass,
+		ta.checkCallExprRecursive(reporterBuilder,
 			callExpr,
-			variableOrPackageName,
-			targetFunctionName,
 			ta.maxRecursionLevel,
 		)
 	}
 }
 
-func checkCallExprRecursive(pass *analysis.Pass,
+func (ta *ttempdirAnalyzer) checkCallExprRecursive(reporterBuilder ReporterBuilder,
 	callExpr *ast.CallExpr,
-	variableOrPackageName, targetFunctionName string,
 	currentRecursionLevel uint,
 ) {
 	if currentRecursionLevel == 0 {
@@ -147,78 +145,67 @@ func checkCallExprRecursive(pass *analysis.Pass,
 
 	for _, arg := range callExpr.Args {
 		if argCallExpr, ok := arg.(*ast.CallExpr); ok {
-			checkCallExprRecursive(pass,
+			ta.checkCallExprRecursive(reporterBuilder,
 				argCallExpr,
-				variableOrPackageName,
-				targetFunctionName,
 				currentRecursionLevel,
 			)
 		}
 	}
 
-	checkFunctionExpr(pass, callExpr, callExpr.Fun, variableOrPackageName, targetFunctionName)
+	reporter := reporterBuilder.Build(callExpr.Pos())
+
+	ta.checkFunctionExpr(reporter, callExpr.Fun)
 }
 
-func checkIfStmt(pass *analysis.Pass,
+func (ta *ttempdirAnalyzer) checkIfStmt(reporterBuilder ReporterBuilder,
 	stmt *ast.IfStmt,
-	variableOrPackageName, targetFunctionName string,
 ) {
 	if assignStmt, ok := stmt.Init.(*ast.AssignStmt); ok {
-		checkAssignStmt(pass, assignStmt, variableOrPackageName, targetFunctionName)
+		reporter := reporterBuilder.Build(stmt.Pos())
+
+		ta.checkAssignStmt(reporter, assignStmt)
 	}
 }
 
-func checkAssignStmt(pass *analysis.Pass,
+func (ta *ttempdirAnalyzer) checkAssignStmt(reporter Reporter,
 	stmt *ast.AssignStmt,
-	variableOrPackageName, targetFunctionName string,
 ) {
 	if rhs, ok := stmt.Rhs[0].(*ast.CallExpr); ok {
-		checkFunctionExpr(pass, stmt, rhs.Fun, variableOrPackageName, targetFunctionName)
+		ta.checkFunctionExpr(reporter, rhs.Fun)
 	}
 }
 
-func (ta *ttempdirAnalyzer) checkForStmt(pass *analysis.Pass,
+func (ta *ttempdirAnalyzer) checkForStmt(reporterBuilder ReporterBuilder,
 	stmt *ast.ForStmt,
-	variableOrPackageName, targetFunctionName string,
 ) {
-	ta.checkStmts(pass, stmt.Body.List, variableOrPackageName, targetFunctionName)
+	ta.checkStmts(reporterBuilder, stmt.Body.List)
 }
 
-func checkFunctionExpr(pass *analysis.Pass,
-	stmt ast.Node,
+func (ta *ttempdirAnalyzer) checkFunctionExpr(reporter Reporter,
 	functionExpr ast.Expr,
-	variableOrPackageName, targetFunctionName string,
 ) {
 	if selectorExpr, ok := functionExpr.(*ast.SelectorExpr); ok {
-		checkSelectorExpr(pass, stmt, selectorExpr, variableOrPackageName, targetFunctionName)
+		ta.checkSelectorExpr(reporter, selectorExpr)
 	}
 }
 
-func checkSelectorExpr(pass *analysis.Pass,
-	stmt ast.Node,
+func (ta *ttempdirAnalyzer) checkSelectorExpr(reporter Reporter,
 	selectorExpr *ast.SelectorExpr,
-	variableOrPackageName, targetFunctionName string,
 ) {
 	if expression, ok := selectorExpr.X.(*ast.Ident); ok {
-		checkIdentifiers(pass, stmt, expression, selectorExpr.Sel, variableOrPackageName, targetFunctionName)
+		ta.checkIdentifiers(reporter, expression, selectorExpr.Sel)
 	}
 }
 
-func checkIdentifiers(pass *analysis.Pass,
-	stmt ast.Node,
+func (ta *ttempdirAnalyzer) checkIdentifiers(reporter Reporter,
 	expression *ast.Ident,
 	fieldSelector *ast.Ident,
-	variableOrPackageName, targetFunctionName string,
 ) {
 	fullQualifiedFunctionName := expression.Name + "." + fieldSelector.Name
 
 	switch fullQualifiedFunctionName {
 	case "ioutil.TempDir", "os.MkdirTemp", "os.TempDir":
-		if variableOrPackageName == "" {
-			variableOrPackageName = "testing"
-		}
-		pass.Reportf(stmt.Pos(), "%s() should be replaced by `%s.TempDir()` in %s",
-			fullQualifiedFunctionName, variableOrPackageName, targetFunctionName)
+		reporter.Report(fullQualifiedFunctionName)
 	}
 }
 
