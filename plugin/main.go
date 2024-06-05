@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/tools/go/analysis"
 
-	"github.com/peczenyj/ttempdir"
+	"github.com/peczenyj/ttempdir/analyzer"
 )
 
 // flags for Analyzer.Flag.
@@ -25,13 +25,14 @@ var AnalyzerPlugin analyzerPlugin
 type analyzerPlugin struct{}
 
 func (analyzerPlugin) GetAnalyzers() []*analysis.Analyzer {
+	ttempdirAnalyzer := analyzer.New()
+
 	if flags != "" {
-		flagset := ttempdir.Analyzer.Flags
+		flagset := ttempdirAnalyzer.Flags
 		if err := flagset.Parse(strings.Split(flags, " ")); err != nil {
 			panic("cannot parse flags of ttempdir: " + err.Error())
 		}
 	}
-	return []*analysis.Analyzer{
-		ttempdir.Analyzer,
-	}
+
+	return []*analysis.Analyzer{ttempdirAnalyzer}
 }

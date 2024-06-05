@@ -1,6 +1,7 @@
-package ttempdir
+package analyzer
 
 import (
+	"flag"
 	"go/ast"
 	"go/token"
 	"strings"
@@ -14,31 +15,42 @@ const (
 	doc = "ttempdir is analyzer that detects using os.MkdirTemp, ioutil.TempDir or os.TempDir instead of t.TempDir since Go1.17"
 
 	defaultMaxRecursionLevel = 5 // arbitrary value, just to avoid too many recursion calls
+
+	A   = "all"
+	MRL = "max-recursion-level"
 )
 
-// Analyzer is ttempdir analyzer
-var Analyzer = &analysis.Analyzer{
-	Name: "ttempdir",
-	Doc:  doc,
-	Run:  run,
-	Requires: []*analysis.Analyzer{
-		inspect.Analyzer,
-	},
-}
-
-var (
-	A       = "all"
+type ttempdirAnalyzer struct {
 	aflag   bool
-	MRL     = "max-recursion-level"
 	mrlFlag uint
-)
-
-func init() {
-	Analyzer.Flags.BoolVar(&aflag, A, false, "the all option will run against all method in test file")
-	Analyzer.Flags.UintVar(&mrlFlag, MRL, defaultMaxRecursionLevel, "max recursion level when checking nested arg calls")
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
+func New() *analysis.Analyzer {
+	ta := &ttempdirAnalyzer{
+		aflag:   false,
+		mrlFlag: defaultMaxRecursionLevel,
+	}
+
+	aa := &analysis.Analyzer{
+		Name: "ttempdir",
+		Doc:  doc,
+		Run:  ta.run,
+		Requires: []*analysis.Analyzer{
+			inspect.Analyzer,
+		},
+	}
+
+	ta.bind(&aa.Flags)
+
+	return aa
+}
+
+func (ta *ttempdirAnalyzer) bind(flagSet *flag.FlagSet) {
+	flagSet.BoolVar(&ta.aflag, A, ta.aflag, "the all option will run against all method in test file")
+	flagSet.UintVar(&ta.mrlFlag, MRL, ta.mrlFlag, "max recursion level when checking nested arg calls")
+}
+
+func (ta *ttempdirAnalyzer) run(pass *analysis.Pass) (interface{}, error) {
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	nodeFilter := []ast.Node{
@@ -49,36 +61,36 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	inspect.Preorder(nodeFilter, func(n ast.Node) {
 		switch n := n.(type) {
 		case *ast.FuncDecl:
-			checkFuncDecl(pass, n, pass.Fset.File(n.Pos()).Name())
+			ta.checkFuncDecl(pass, n, pass.Fset.File(n.Pos()).Name())
 		case *ast.FuncLit:
-			checkFuncLit(pass, n, pass.Fset.File(n.Pos()).Name())
+			ta.checkFuncLit(pass, n, pass.Fset.File(n.Pos()).Name())
 		}
 	})
 
 	return nil, nil
 }
 
-func checkFuncDecl(pass *analysis.Pass, f *ast.FuncDecl, fileName string) {
-	argName, ok := targetRunner(f.Type.Params.List, fileName)
+func (ta *ttempdirAnalyzer) checkFuncDecl(pass *analysis.Pass, f *ast.FuncDecl, fileName string) {
+	argName, ok := ta.targetRunner(f.Type.Params.List, fileName)
 	if !ok {
 		return
 	}
-	checkStmts(pass, f.Body.List, f.Name.Name, argName)
+	ta.checkStmts(pass, f.Body.List, f.Name.Name, argName)
 }
 
-func checkFuncLit(pass *analysis.Pass, f *ast.FuncLit, fileName string) {
-	argName, ok := targetRunner(f.Type.Params.List, fileName)
+func (ta *ttempdirAnalyzer) checkFuncLit(pass *analysis.Pass, f *ast.FuncLit, fileName string) {
+	argName, ok := ta.targetRunner(f.Type.Params.List, fileName)
 	if !ok {
 		return
 	}
-	checkStmts(pass, f.Body.List, "anonymous function", argName)
+	ta.checkStmts(pass, f.Body.List, "anonymous function", argName)
 }
 
-func checkStmts(pass *analysis.Pass, stmts []ast.Stmt, funcName, argName string) {
+func (ta *ttempdirAnalyzer) checkStmts(pass *analysis.Pass, stmts []ast.Stmt, funcName, argName string) {
 	for _, stmt := range stmts {
 		switch stmt := stmt.(type) {
 		case *ast.ExprStmt:
-			if !checkExprStmt(pass, stmt, funcName, argName) {
+			if !ta.checkExprStmt(pass, stmt, funcName, argName) {
 				continue
 			}
 		case *ast.IfStmt:
@@ -93,13 +105,13 @@ func checkStmts(pass *analysis.Pass, stmts []ast.Stmt, funcName, argName string)
 	}
 }
 
-func checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName string) bool {
+func (ta *ttempdirAnalyzer) checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName string) bool {
 	callExpr, ok := stmt.X.(*ast.CallExpr)
 	if !ok {
 		return false
 	}
 
-	checkCallExprRecursive(pass, callExpr, funcName, argName, mrlFlag)
+	checkCallExprRecursive(pass, callExpr, funcName, argName, ta.mrlFlag)
 
 	return true
 }
@@ -192,7 +204,7 @@ func checkTargetNames(pass *analysis.Pass,
 	}
 }
 
-func targetRunner(params []*ast.Field, fileName string) (string, bool) {
+func (ta *ttempdirAnalyzer) targetRunner(params []*ast.Field, fileName string) (string, bool) {
 	for _, p := range params {
 		switch typ := p.Type.(type) {
 		case *ast.StarExpr:
@@ -213,7 +225,7 @@ func targetRunner(params []*ast.Field, fileName string) (string, bool) {
 			}
 		}
 	}
-	if aflag && strings.HasSuffix(fileName, "_test.go") {
+	if ta.aflag && strings.HasSuffix(fileName, "_test.go") {
 		return "", true
 	}
 	return "", false
