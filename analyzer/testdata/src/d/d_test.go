@@ -26,6 +26,9 @@ func TestF(t *testing.T) {
 	if _, err := os.MkdirTemp("a", "b"); err != nil { // want "os\\.MkdirTemp\\(\\) should be replaced by `t\\.TempDir\\(\\)` in TestF"
 		_ = err
 	}
+	t.Cleanup(func() {
+		_, _ = os.MkdirTemp("a", "b") // want "os\\.MkdirTemp\\(\\) should be replaced by `testing\\.TempDir\\(\\)` in anonymous function"
+	})
 }
 
 func BenchmarkF(b *testing.B) {

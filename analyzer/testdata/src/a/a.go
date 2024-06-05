@@ -31,6 +31,10 @@ func F(t *testing.T) {
 		_ = t
 		_, _ = os.MkdirTemp("a", "b") // want "os\\.MkdirTemp\\(\\) should be replaced by `t\\.TempDir\\(\\)` in anonymous function"
 	}
+
+	t.Cleanup(func() {
+		_, _ = os.MkdirTemp("a", "b")
+	})
 }
 
 func BF(b *testing.B) {
