@@ -1,4 +1,15 @@
+## What's Changed in v0.3.2
+* add support to defer statement
+* revert some changes
+* reorganize code and function calls
+* finish refactor analyzer
+* refactor analyzer
+* bypass bug in go cover
+
+**Full Changelog**: https://github.com///compare/v0.3.1...v0.3.2
+
 ## What's Changed in v0.3.1
+* update changelog
 * update analyzer report message and fix support to for-loop statements
 * add changelog
 
