@@ -3,7 +3,6 @@ package analyzer
 import (
 	"flag"
 	"go/ast"
-	"go/token"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -24,38 +23,38 @@ const (
 )
 
 type ttempdirAnalyzer struct {
-	aflag   bool
-	mrlFlag uint
+	all               bool
+	maxRecursionLevel uint
 }
 
 // New analyzer constructor.
 // Will bind flagset all and max-recursion-level
 func New() *analysis.Analyzer {
 	ta := &ttempdirAnalyzer{
-		aflag:   defaultAll,
-		mrlFlag: defaultMaxRecursionLevel,
+		all:               defaultAll,
+		maxRecursionLevel: defaultMaxRecursionLevel,
 	}
 
 	aa := &analysis.Analyzer{
 		Name: "ttempdir",
 		Doc:  doc,
-		Run:  ta.run,
+		Run:  ta.Run,
 		Requires: []*analysis.Analyzer{
 			inspect.Analyzer,
 		},
 	}
 
-	ta.bind(&aa.Flags)
+	ta.Bind(&aa.Flags)
 
 	return aa
 }
 
-func (ta *ttempdirAnalyzer) bind(flagSet *flag.FlagSet) {
-	flagSet.BoolVar(&ta.aflag, FlagAllName, ta.aflag, "the all option will run against all method in test file")
-	flagSet.UintVar(&ta.mrlFlag, FlagMaxRecursionLevelName, ta.mrlFlag, "max recursion level when checking nested arg calls")
+func (ta *ttempdirAnalyzer) Bind(flagSet *flag.FlagSet) {
+	flagSet.BoolVar(&ta.all, FlagAllName, ta.all, "the all option will run against all method in test file")
+	flagSet.UintVar(&ta.maxRecursionLevel, FlagMaxRecursionLevelName, ta.maxRecursionLevel, "max recursion level when checking nested arg calls")
 }
 
-func (ta *ttempdirAnalyzer) run(pass *analysis.Pass) (interface{}, error) {
+func (ta *ttempdirAnalyzer) Run(pass *analysis.Pass) (interface{}, error) {
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	nodeFilter := []ast.Node{
@@ -63,182 +62,187 @@ func (ta *ttempdirAnalyzer) run(pass *analysis.Pass) (interface{}, error) {
 		(*ast.FuncLit)(nil),
 	}
 
-	inspect.Preorder(nodeFilter, func(n ast.Node) {
-		switch n := n.(type) {
+	inspect.Preorder(nodeFilter, func(node ast.Node) {
+		switch function := node.(type) {
 		case *ast.FuncDecl:
-			ta.checkFuncDecl(pass, n, pass.Fset.File(n.Pos()).Name())
+			ta.checkFuncDecl(pass, function)
 		case *ast.FuncLit:
-			ta.checkFuncLit(pass, n, pass.Fset.File(n.Pos()).Name())
+			ta.checkFuncLit(pass, function)
 		}
 	})
 
 	return nil, nil
 }
 
-func (ta *ttempdirAnalyzer) checkFuncDecl(pass *analysis.Pass, f *ast.FuncDecl, fileName string) {
-	argName, ok := ta.targetRunner(f.Type.Params.List, fileName)
-	if !ok {
-		return
-	}
-	ta.checkStmts(pass, f.Body.List, f.Name.Name, argName)
+func (ta *ttempdirAnalyzer) checkFuncDecl(pass *analysis.Pass, function *ast.FuncDecl) {
+	ta.checkGenericFunctionCall(pass, function, function.Type, function.Body, function.Name.Name)
 }
 
-func (ta *ttempdirAnalyzer) checkFuncLit(pass *analysis.Pass, f *ast.FuncLit, fileName string) {
-	argName, ok := ta.targetRunner(f.Type.Params.List, fileName)
-	if !ok {
-		return
-	}
-	ta.checkStmts(pass, f.Body.List, "anonymous function", argName)
+func (ta *ttempdirAnalyzer) checkFuncLit(pass *analysis.Pass, function *ast.FuncLit) {
+	ta.checkGenericFunctionCall(pass, function, function.Type, function.Body, "anonymous function")
 }
 
-func (ta *ttempdirAnalyzer) checkStmts(pass *analysis.Pass, stmts []ast.Stmt, funcName, argName string) {
+func (ta *ttempdirAnalyzer) checkGenericFunctionCall(pass *analysis.Pass,
+	function ast.Node,
+	functionType *ast.FuncType,
+	functionBody *ast.BlockStmt,
+	functionName string,
+) {
+	fileName := pass.Fset.File(function.Pos()).Name()
+	if variableOrPackageName, found := ta.targetRunner(functionType.Params, fileName); found {
+		ta.checkStmts(pass, functionBody.List, variableOrPackageName, functionName)
+	}
+}
+
+func (ta *ttempdirAnalyzer) checkStmts(pass *analysis.Pass,
+	stmts []ast.Stmt,
+	variableOrPackageName, targetFunctionName string,
+) {
 	for _, stmt := range stmts {
-		switch stmt := stmt.(type) {
-		case *ast.ExprStmt:
-			if !ta.checkExprStmt(pass, stmt, funcName, argName) {
-				continue
-			}
-		case *ast.IfStmt:
-			if !checkIfStmt(pass, stmt, funcName, argName) {
-				continue
-			}
-		case *ast.AssignStmt:
-			if !checkAssignStmt(pass, stmt, funcName, argName) {
-				continue
-			}
-		case *ast.ForStmt:
-			ta.checkForStmt(pass, stmt, funcName, argName)
-		}
+		ta.checkSingleStmt(pass, stmt, variableOrPackageName, targetFunctionName)
 	}
 }
 
-func (ta *ttempdirAnalyzer) checkExprStmt(pass *analysis.Pass, stmt *ast.ExprStmt, funcName, argName string) bool {
-	callExpr, ok := stmt.X.(*ast.CallExpr)
-	if !ok {
-		return false
+func (ta *ttempdirAnalyzer) checkSingleStmt(pass *analysis.Pass,
+	stmt ast.Stmt,
+	variableOrPackageName, targetFunctionName string,
+) {
+	switch stmt := stmt.(type) {
+	case *ast.ExprStmt:
+		ta.checkExprStmt(pass, stmt, variableOrPackageName, targetFunctionName)
+	case *ast.IfStmt:
+		checkIfStmt(pass, stmt, variableOrPackageName, targetFunctionName)
+	case *ast.AssignStmt:
+		checkAssignStmt(pass, stmt, variableOrPackageName, targetFunctionName)
+	case *ast.ForStmt:
+		ta.checkForStmt(pass, stmt, variableOrPackageName, targetFunctionName)
 	}
+}
 
-	checkCallExprRecursive(pass, callExpr, funcName, argName, ta.mrlFlag)
-
-	return true
+func (ta *ttempdirAnalyzer) checkExprStmt(pass *analysis.Pass,
+	stmt *ast.ExprStmt,
+	variableOrPackageName,
+	targetFunctionName string,
+) {
+	if callExpr, ok := stmt.X.(*ast.CallExpr); ok {
+		checkCallExprRecursive(pass,
+			callExpr,
+			variableOrPackageName,
+			targetFunctionName,
+			ta.maxRecursionLevel,
+		)
+	}
 }
 
 func checkCallExprRecursive(pass *analysis.Pass,
 	callExpr *ast.CallExpr,
-	funcName, argName string,
+	variableOrPackageName, targetFunctionName string,
 	currentRecursionLevel uint,
 ) {
 	if currentRecursionLevel == 0 {
 		return
 	}
 
+	currentRecursionLevel--
+
 	for _, arg := range callExpr.Args {
 		if argCallExpr, ok := arg.(*ast.CallExpr); ok {
-			checkCallExprRecursive(pass, argCallExpr, funcName, argName, currentRecursionLevel-1)
+			checkCallExprRecursive(pass,
+				argCallExpr,
+				variableOrPackageName,
+				targetFunctionName,
+				currentRecursionLevel,
+			)
 		}
 	}
 
-	fun, ok := callExpr.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return
-	}
-	x, ok := fun.X.(*ast.Ident)
-	if !ok {
-		return
-	}
-
-	checkTargetNames(pass, callExpr, funcName, argName, fun, x)
+	checkFunctionExpr(pass, callExpr, callExpr.Fun, variableOrPackageName, targetFunctionName)
 }
 
-func checkIfStmt(pass *analysis.Pass, stmt *ast.IfStmt, funcName, argName string) bool {
-	assignStmt, ok := stmt.Init.(*ast.AssignStmt)
-	if !ok {
-		return false
-	}
-	rhs, ok := assignStmt.Rhs[0].(*ast.CallExpr)
-	if !ok {
-		return false
-	}
-	fun, ok := rhs.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-	x, ok := fun.X.(*ast.Ident)
-	if !ok {
-		return false
-	}
-
-	checkTargetNames(pass, stmt, funcName, argName, fun, x)
-
-	return true
-}
-
-func checkAssignStmt(pass *analysis.Pass, stmt *ast.AssignStmt, funcName, argName string) bool {
-	rhs, ok := stmt.Rhs[0].(*ast.CallExpr)
-	if !ok {
-		return false
-	}
-	fun, ok := rhs.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-	x, ok := fun.X.(*ast.Ident)
-	if !ok {
-		return false
-	}
-
-	checkTargetNames(pass, stmt, funcName, argName, fun, x)
-
-	return true
-}
-
-func (ta *ttempdirAnalyzer) checkForStmt(pass *analysis.Pass, stmt *ast.ForStmt, funcName, argName string) {
-	ta.checkStmts(pass, stmt.Body.List, funcName, argName)
-}
-
-func checkTargetNames(pass *analysis.Pass,
-	stmt interface{ Pos() token.Pos },
-	funcName, argName string,
-	fun *ast.SelectorExpr,
-	x *ast.Ident,
+func checkIfStmt(pass *analysis.Pass,
+	stmt *ast.IfStmt,
+	variableOrPackageName, targetFunctionName string,
 ) {
-	targetName := x.Name + "." + fun.Sel.Name
-
-	switch targetName {
-	case "ioutil.TempDir", "os.MkdirTemp", "os.TempDir":
-		if argName == "" {
-			argName = "testing"
-		}
-		pass.Reportf(stmt.Pos(), "%s() should be replaced by `%s.TempDir()` in %s", targetName, argName, funcName)
-
-		return
+	if assignStmt, ok := stmt.Init.(*ast.AssignStmt); ok {
+		checkAssignStmt(pass, assignStmt, variableOrPackageName, targetFunctionName)
 	}
 }
 
-func (ta *ttempdirAnalyzer) targetRunner(params []*ast.Field, fileName string) (string, bool) {
-	for _, p := range params {
-		switch typ := p.Type.(type) {
+func checkAssignStmt(pass *analysis.Pass,
+	stmt *ast.AssignStmt,
+	variableOrPackageName, targetFunctionName string,
+) {
+	if rhs, ok := stmt.Rhs[0].(*ast.CallExpr); ok {
+		checkFunctionExpr(pass, stmt, rhs.Fun, variableOrPackageName, targetFunctionName)
+	}
+}
+
+func (ta *ttempdirAnalyzer) checkForStmt(pass *analysis.Pass,
+	stmt *ast.ForStmt,
+	variableOrPackageName, targetFunctionName string,
+) {
+	ta.checkStmts(pass, stmt.Body.List, variableOrPackageName, targetFunctionName)
+}
+
+func checkFunctionExpr(pass *analysis.Pass,
+	stmt ast.Node,
+	functionExpr ast.Expr,
+	variableOrPackageName, targetFunctionName string,
+) {
+	if selectorExpr, ok := functionExpr.(*ast.SelectorExpr); ok {
+		checkSelectorExpr(pass, stmt, selectorExpr, variableOrPackageName, targetFunctionName)
+	}
+}
+
+func checkSelectorExpr(pass *analysis.Pass,
+	stmt ast.Node,
+	selectorExpr *ast.SelectorExpr,
+	variableOrPackageName, targetFunctionName string,
+) {
+	if expression, ok := selectorExpr.X.(*ast.Ident); ok {
+		checkIdentifiers(pass, stmt, expression, selectorExpr.Sel, variableOrPackageName, targetFunctionName)
+	}
+}
+
+func checkIdentifiers(pass *analysis.Pass,
+	stmt ast.Node,
+	expression *ast.Ident,
+	fieldSelector *ast.Ident,
+	variableOrPackageName, targetFunctionName string,
+) {
+	fullQualifiedFunctionName := expression.Name + "." + fieldSelector.Name
+
+	switch fullQualifiedFunctionName {
+	case "ioutil.TempDir", "os.MkdirTemp", "os.TempDir":
+		if variableOrPackageName == "" {
+			variableOrPackageName = "testing"
+		}
+		pass.Reportf(stmt.Pos(), "%s() should be replaced by `%s.TempDir()` in %s",
+			fullQualifiedFunctionName, variableOrPackageName, targetFunctionName)
+	}
+}
+
+func (ta *ttempdirAnalyzer) targetRunner(
+	functionTypeParams *ast.FieldList,
+	fileName string,
+) (variableOrPackageName string, found bool) {
+	for _, field := range functionTypeParams.List {
+		switch typ := field.Type.(type) {
 		case *ast.StarExpr:
 			if checkStarExprTarget(typ) {
-				if len(p.Names) == 0 {
-					return "", false
-				}
-				argName := p.Names[0].Name
-				return argName, true
+				return getFirstFieldName(field)
 			}
 		case *ast.SelectorExpr:
 			if checkSelectorExprTarget(typ) {
-				if len(p.Names) == 0 {
-					return "", false
-				}
-				argName := p.Names[0].Name
-				return argName, true
+				return getFirstFieldName(field)
 			}
 		}
 	}
-	if ta.aflag && strings.HasSuffix(fileName, "_test.go") {
+
+	if ta.all && strings.HasSuffix(fileName, "_test.go") {
 		return "", true
 	}
+
 	return "", false
 }
 
@@ -267,4 +271,11 @@ func checkSelectorExprTarget(typ *ast.SelectorExpr) bool {
 	}
 	targetName := x.Name + "." + typ.Sel.Name
 	return targetName == "testing.TB"
+}
+
+func getFirstFieldName(field *ast.Field) (string, bool) {
+	if len(field.Names) == 0 {
+		return "", false
+	}
+	return field.Names[0].Name, true
 }
