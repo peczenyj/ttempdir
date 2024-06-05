@@ -26,6 +26,15 @@ func F(t *testing.T) {
 	if _, err := os.MkdirTemp("a", "b"); err != nil { // want "os\\.MkdirTemp\\(\\) should be replaced by `t\\.TempDir\\(\\)` in F"
 		_ = err
 	}
+
+	_ = func(t *testing.T) {
+		_ = t
+		_, _ = os.MkdirTemp("a", "b") // want "os\\.MkdirTemp\\(\\) should be replaced by `t\\.TempDir\\(\\)` in anonymous function"
+	}
+
+	t.Cleanup(func() {
+		_, _ = os.MkdirTemp("a", "b")
+	})
 }
 
 func BF(b *testing.B) {
@@ -36,6 +45,11 @@ func BF(b *testing.B) {
 	if _, err := os.MkdirTemp("a", "b"); err != nil { // want "os\\.MkdirTemp\\(\\) should be replaced by `b\\.TempDir\\(\\)` in BF"
 		_ = err
 	}
+
+	func(b *testing.B) {
+		_ = b
+		_, _ = os.MkdirTemp("a", "b") // want "os\\.MkdirTemp\\(\\) should be replaced by `b\\.TempDir\\(\\)` in anonymous function"
+	}(b)
 }
 
 func TBF(tb testing.TB) {
@@ -45,6 +59,11 @@ func TBF(tb testing.TB) {
 	if _, err := os.MkdirTemp("a", "b"); err != nil { // want "os\\.MkdirTemp\\(\\) should be replaced by `tb\\.TempDir\\(\\)` in TBF"
 		_ = err
 	}
+
+	defer func(tb testing.TB) {
+		_ = tb
+		_, _ = os.MkdirTemp("a", "b") // want "os\\.MkdirTemp\\(\\) should be replaced by `tb\\.TempDir\\(\\)` in anonymous function"
+	}(tb)
 }
 
 func FF(f *testing.F) {
@@ -54,4 +73,6 @@ func FF(f *testing.F) {
 	if _, err := os.MkdirTemp("a", "b"); err != nil { // want "os\\.MkdirTemp\\(\\) should be replaced by `f\\.TempDir\\(\\)` in FF"
 		_ = err
 	}
+
+	defer os.MkdirTemp("a", "b") // want "os\\.MkdirTemp\\(\\) should be replaced by `f\\.TempDir\\(\\)` in FF"
 }

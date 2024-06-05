@@ -122,11 +122,11 @@ func (ta *ttempdirAnalyzer) checkSingleStmt(reporterBuilder ReporterBuilder,
 	case *ast.IfStmt:
 		ta.checkIfStmt(reporterBuilder, stmt)
 	case *ast.AssignStmt:
-		reporter := reporterBuilder.Build(stmt.Pos())
-
-		ta.checkAssignStmt(reporter, stmt)
+		ta.checkAssignStmt(reporterBuilder.Build(stmt.Pos()), stmt)
 	case *ast.ForStmt:
 		ta.checkForStmt(reporterBuilder, stmt)
+	case *ast.DeferStmt:
+		ta.checkDeferStmt(reporterBuilder, stmt)
 	}
 }
 
@@ -134,10 +134,7 @@ func (ta *ttempdirAnalyzer) checkExprStmt(reporterBuilder ReporterBuilder,
 	stmt *ast.ExprStmt,
 ) {
 	if callExpr, ok := stmt.X.(*ast.CallExpr); ok {
-		ta.checkCallExprRecursive(reporterBuilder,
-			callExpr,
-			ta.maxRecursionLevel,
-		)
+		ta.checkCallExpr(reporterBuilder, callExpr)
 	}
 }
 
@@ -183,10 +180,25 @@ func (ta *ttempdirAnalyzer) checkAssignStmt(reporter Reporter,
 	}
 }
 
+func (ta *ttempdirAnalyzer) checkDeferStmt(reporterBuilder ReporterBuilder,
+	stmt *ast.DeferStmt,
+) {
+	ta.checkCallExpr(reporterBuilder, stmt.Call)
+}
+
 func (ta *ttempdirAnalyzer) checkForStmt(reporterBuilder ReporterBuilder,
 	stmt *ast.ForStmt,
 ) {
 	ta.checkStmts(reporterBuilder, stmt.Body.List)
+}
+
+func (ta *ttempdirAnalyzer) checkCallExpr(reporterBuilder ReporterBuilder,
+	callExpr *ast.CallExpr,
+) {
+	ta.checkCallExprRecursive(reporterBuilder,
+		callExpr,
+		ta.maxRecursionLevel,
+	)
 }
 
 func (ta *ttempdirAnalyzer) checkFunctionExpr(reporter Reporter,
