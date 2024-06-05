@@ -1,3 +1,9 @@
+## What's Changed in v0.3.1
+* update analyzer report message and fix support to for-loop statements
+* add changelog
+
+**Full Changelog**: https://github.com///compare/v0.3.0...v0.3.1
+
 ## What's Changed in v0.3.0
 * Create release.yml
 * prepare next version without global analyzer
