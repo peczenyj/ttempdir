@@ -59,9 +59,9 @@ func helper() {
 go vet -vettool=$(which ttempdir) ./...
 
 # a
-./main_test.go:11:14: os.TempDir() can be replaced by `t.TempDir()` in TestMain
-./main_test.go:12:2: os.MkdirTemp() can be replaced by `t.TempDir()` in TestMain
-./main_test.go:20:14: os.TempDir() can be replaced by `t.TempDir()` in TestMain2
+./main_test.go:11:14: os.TempDir() should be replaced by `t.TempDir()` in TestMain
+./main_test.go:12:2: os.MkdirTemp() should be replaced by `t.TempDir()` in TestMain
+./main_test.go:20:14: os.TempDir() should be replaced by `t.TempDir()` in TestMain2
 ```
 
 ### option
@@ -106,10 +106,10 @@ func helper() {
 go vet -vettool=(which ttempdir) -ttempdir.all ./...
 
 # a
-./main_test.go:11:14: os.TempDir() can be replaced by `t.TempDir()` in TestMain
-./main_test.go:12:2: os.MkdirTemp() can be replaced by `t.TempDir()` in TestMain
-./main_test.go:20:14: os.TempDir() can be replaced by `t.TempDir()` in TestMain2
-./main_test.go:24:2: ioutil.TempDir() can be replaced by `testing.TempDir()` in helper
+./main_test.go:11:14: os.TempDir() should be replaced by `t.TempDir()` in TestMain
+./main_test.go:12:2: os.MkdirTemp() should be replaced by `t.TempDir()` in TestMain
+./main_test.go:20:14: os.TempDir() should be replaced by `t.TempDir()` in TestMain2
+./main_test.go:24:2: ioutil.TempDir() should be replaced by `testing.TempDir()` in helper
 ```
 
 ## CI
