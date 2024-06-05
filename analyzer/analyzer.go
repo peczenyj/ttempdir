@@ -66,39 +66,36 @@ func (ta *ttempdirAnalyzer) Run(pass *analysis.Pass) (interface{}, error) {
 	inspect.Preorder(nodeFilter, func(node ast.Node) {
 		switch function := node.(type) {
 		case *ast.FuncDecl:
-			ta.checkFunctionDeclaration(pass, function)
+			ta.checkFuncDecl(pass, function)
 		case *ast.FuncLit:
-			ta.checkFunctionLiteral(pass, function, "anonymous function")
+			ta.checkFuncLit(pass, function, "anonymous function")
 		}
 	})
 
 	return nil, nil
 }
 
-func (ta *ttempdirAnalyzer) checkFunctionDeclaration(pass *analysis.Pass,
-	function *ast.FuncDecl,
-) {
-	// rewrite function declaration as function literal
-	functionLiteral := &ast.FuncLit{
-		Type: function.Type,
-		Body: function.Body,
-	}
-
-	ta.checkFunctionLiteral(pass, functionLiteral, function.Name.Name)
+func (ta *ttempdirAnalyzer) checkFuncDecl(pass *analysis.Pass, function *ast.FuncDecl) {
+	ta.checkGenericFunctionCall(pass, function.Type, function.Body, function.Name.Name)
 }
 
-func (ta *ttempdirAnalyzer) checkFunctionLiteral(pass *analysis.Pass,
-	function *ast.FuncLit,
+func (ta *ttempdirAnalyzer) checkFuncLit(pass *analysis.Pass, function *ast.FuncLit, targetFunctionName string) {
+	ta.checkGenericFunctionCall(pass, function.Type, function.Body, targetFunctionName)
+}
+
+func (ta *ttempdirAnalyzer) checkGenericFunctionCall(pass *analysis.Pass,
+	functionType *ast.FuncType,
+	functionBody *ast.BlockStmt,
 	targetFunctionName string,
 ) {
-	variableOrPackageName, found := ta.targetRunner(function.Type.Params,
-		isFilenameFollowingTestingConventions(pass, function.Pos()),
+	variableOrPackageName, found := ta.targetRunner(functionType.Params,
+		isFilenameFollowingTestingConventions(pass, functionType.Pos()),
 	)
 
 	if found {
 		reporterBuilder := newReporterBuilder(pass, variableOrPackageName, targetFunctionName)
 
-		ta.checkStmts(reporterBuilder, function.Body.List)
+		ta.checkStmts(reporterBuilder, functionBody.List)
 	}
 }
 
