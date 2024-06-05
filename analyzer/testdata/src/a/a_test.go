@@ -1,6 +1,7 @@
 package a
 
 import (
+	"fmt"
 	"os"
 	"testing"
 )
@@ -74,4 +75,32 @@ func TestEmpty(t *testing.T) {
 
 func TestEmptyTB(t *testing.T) {
 	func(testing.TB) {}(t)
+}
+
+func TestTDD(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+	}{
+		{"test"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			os.MkdirTemp("a", "b")           // want "os\\.MkdirTemp\\(\\) can be replaced by `t\\.TempDir\\(\\)` in anonymous function"
+			_, err := os.MkdirTemp("a", "b") // want "os\\.MkdirTemp\\(\\) can be replaced by `t\\.TempDir\\(\\)` in anonymous function"
+			_ = err
+			if _, err := os.MkdirTemp("a", "b"); err != nil { // want "os\\.MkdirTemp\\(\\) can be replaced by `t\\.TempDir\\(\\)` in anonymous function"
+				_ = err
+			}
+		})
+	}
+}
+
+func TestLoop(t *testing.T) {
+	for i := 0; i < 3; i++ {
+		os.MkdirTemp(fmt.Sprintf("a%d", i), "b")           // want "os\\.MkdirTemp\\(\\) can be replaced by `t\\.TempDir\\(\\)` in TestLoop"
+		_, err := os.MkdirTemp(fmt.Sprintf("a%d", i), "b") // want "os\\.MkdirTemp\\(\\) can be replaced by `t\\.TempDir\\(\\)` in TestLoop"
+		_ = err
+		if _, err := os.MkdirTemp(fmt.Sprintf("a%d", i), "b"); err != nil { // want "os\\.MkdirTemp\\(\\) can be replaced by `t\\.TempDir\\(\\)` in TestLoop"
+			_ = err
+		}
+	}
 }
