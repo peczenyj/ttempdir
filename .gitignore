@@ -1,17 +1,18 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary, built with `go test -c`
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
+# Ignore binaries defined in cmd
+/ttempdir
+# Ignore coverage files
+.coverage.*
+.test_report.xml
+# Ignore hidden markdown files (uses these for notes etc. i.e. .NOTES.md, .README.md etc.)
+.*.md
+# Ignore CI and release build directory
+/dist
+/build
+/builds
+/tmp
+# Ignore others
+.local
+.env
+.cache
+.vscode
 .idea
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
