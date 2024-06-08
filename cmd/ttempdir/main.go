@@ -1,9 +1,9 @@
 package main
 
 import (
-	"golang.org/x/tools/go/analysis/unitchecker"
+	"golang.org/x/tools/go/analysis/singlechecker"
 
 	"github.com/peczenyj/ttempdir/analyzer"
 )
 
-func main() { unitchecker.Main(analyzer.New()) }
+func main() { singlechecker.Main(analyzer.New(analyzer.WithFlagPrefix("linter"))) }
