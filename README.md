@@ -12,6 +12,10 @@ ttempdir detects temporary directories not using t.TempDir
 [![CodeQL](https://github.com/peczenyj/ttempdir/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/peczenyj/ttempdir/actions/workflows/github-code-scanning/codeql)
 [![Dependency Review](https://github.com/peczenyj/ttempdir/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/peczenyj/ttempdir/actions/workflows/dependency-review.yml)
 [![License](https://img.shields.io/github/license/peczenyj/ttempdir)](./LICENSE)
+[![Latest release](https://img.shields.io/github/release/peczenyj/ttempdir.svg)](https://github.com/peczenyj/ttempdir/releases/latest)
+[![GitHub Release Date](https://img.shields.io/github/release-date/peczenyj/ttempdir.svg)](https://github.com/peczenyj/ttempdir/releases/latest)
+[![Last commit](https://img.shields.io/github/last-commit/peczenyj/ttempdir.svg)](https://github.com/peczenyj/ttempdir/commit/HEAD)
+
 
 This code is based on [tenv](https://github.com/sivchari/tenv) analyzer.
 
@@ -56,17 +60,32 @@ func helper() {
 ```
 
 ```console
-go vet -vettool=$(which ttempdir) ./...
+$ ttempdir ./...
 
-# a
 ./main_test.go:11:14: os.TempDir() should be replaced by `t.TempDir()` in TestMain
 ./main_test.go:12:2: os.MkdirTemp() should be replaced by `t.TempDir()` in TestMain
 ./main_test.go:20:14: os.TempDir() should be replaced by `t.TempDir()` in TestMain2
 ```
 
-### option
+### options
+
+This linter defines two option flags: `-linter.all` and `-linter.max-recursion-level`
+
+```console
+$ ttempdir -h
+...
+  -linter.all
+        the all option will run against all methods in test file
+  -linter.max-recursion-level uint
+        max recursion level when checking nested arg calls (default 5)
+...
+```
+
+#### all
 
 The option `all` will run against whole test files (`_test.go`) regardless of method/function signatures.  
+
+It is triggered by the flag `-linter.all`.
 
 By default, only methods that take `*testing.T`, `*testing.B`, and `testing.TB` as arguments are checked.
 
@@ -103,13 +122,35 @@ func helper() {
 ```
 
 ```console
-go vet -vettool=(which ttempdir) -ttempdir.all ./...
+$ ttempdir -linter.all ./...
 
 # a
 ./main_test.go:11:14: os.TempDir() should be replaced by `t.TempDir()` in TestMain
 ./main_test.go:12:2: os.MkdirTemp() should be replaced by `t.TempDir()` in TestMain
 ./main_test.go:20:14: os.TempDir() should be replaced by `t.TempDir()` in TestMain2
 ./main_test.go:24:2: ioutil.TempDir() should be replaced by `testing.TempDir()` in helper
+```
+
+#### max-recursion-level
+
+This linter searchs on argument lists in a recursive way. By default we limit to 5 the recursion level.
+
+For instance, the example below will not emit any analysis report because `os.TempDir()` is called on a 6th level of recursion. If needed this can be updated via flag `-linter.max-recursion-level`.
+
+```go
+    t.Log( // recursion level 1
+        fmt.Sprintf("%s/foo-%d", // recursion level 2
+            filepath.Join( // recursion level 3
+                filepath.Clean( // recursion level 4
+                    fmt.Sprintf("%s", // recursion level 5
+                        os.TempDir(), // max recursion level reached.
+                    ),
+                ),
+                "test",
+            ),
+            1024,
+        ),
+    )
 ```
 
 ## CI
@@ -119,19 +160,19 @@ go vet -vettool=(which ttempdir) -ttempdir.all ./...
 ```yaml
 - run:
     name: install ttempdir
-    command: go install github.com/peczenyj/ttempdir
+    command: go install github.com/peczenyj/ttempdir/cmd/ttempdir@latest
 
 - run:
     name: run ttempdir
-    command: go vet -vettool=`which ttempdir` ./...
+    command: ttempdir ./...
 ```
 
 ### GitHub Actions
 
 ```yaml
 - name: install ttempdir
-  run: go install github.com/peczenyj/ttempdir
+  run: go install github.com/peczenyj/ttempdir/cmd/ttempdir@latest
 
 - name: run ttempdir
-  run: go vet -vettool=`which ttempdir` ./...
+  run: ttempdir ./...
 ```

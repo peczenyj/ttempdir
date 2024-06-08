@@ -12,7 +12,9 @@ import (
 )
 
 const (
-	doc = "ttempdir is analyzer that detects using os.MkdirTemp, ioutil.TempDir or os.TempDir instead of t.TempDir since Go1.17"
+	name = "ttempdir"
+	doc  = name + " is analyzer that detects using os.MkdirTemp, ioutil.TempDir or os.TempDir instead of t.TempDir since Go1.17"
+	url  = "https://github.com/peczenyj/ttempdir"
 
 	defaultAll               = false
 	defaultMaxRecursionLevel = 5 // arbitrary value, just to avoid too many recursion calls
@@ -28,31 +30,62 @@ type ttempdirAnalyzer struct {
 	maxRecursionLevel uint
 }
 
+type conf struct {
+	prefix string
+}
+
+// Option type.
+type Option func(*conf)
+
+// WithFlagPrefix functional option.
+func WithFlagPrefix(prefix string) Option {
+	return func(c *conf) {
+		c.prefix = prefix
+	}
+}
+
 // New analyzer constructor.
 // Will bind flagset all and max-recursion-level
-func New() *analysis.Analyzer {
-	ta := &ttempdirAnalyzer{
-		all:               defaultAll,
-		maxRecursionLevel: defaultMaxRecursionLevel,
+func New(opts ...Option) *analysis.Analyzer {
+	var c conf
+
+	for _, opt := range opts {
+		opt(&c)
 	}
 
+	var ta ttempdirAnalyzer
+
 	aa := &analysis.Analyzer{
-		Name: "ttempdir",
+		Name: name,
 		Doc:  doc,
+		URL:  url,
 		Run:  ta.Run,
 		Requires: []*analysis.Analyzer{
 			inspect.Analyzer,
 		},
 	}
 
-	ta.Bind(&aa.Flags)
+	c.bindFlags(&ta, &aa.Flags)
 
 	return aa
 }
 
-func (ta *ttempdirAnalyzer) Bind(flagSet *flag.FlagSet) {
-	flagSet.BoolVar(&ta.all, FlagAllName, ta.all, "the all option will run against all method in test file")
-	flagSet.UintVar(&ta.maxRecursionLevel, FlagMaxRecursionLevelName, ta.maxRecursionLevel, "max recursion level when checking nested arg calls")
+func (c *conf) bindFlags(ta *ttempdirAnalyzer, flagSet *flag.FlagSet) {
+	prefix := c.prefix
+
+	if prefix != "" && !strings.HasSuffix(prefix, ".") {
+		prefix += "."
+	}
+
+	flagSet.BoolVar(&ta.all,
+		prefix+FlagAllName,
+		defaultAll,
+		"the all option will run against all methods in test file")
+
+	flagSet.UintVar(&ta.maxRecursionLevel,
+		prefix+FlagMaxRecursionLevelName,
+		defaultMaxRecursionLevel,
+		"max recursion level when checking nested arg calls")
 }
 
 func (ta *ttempdirAnalyzer) Run(pass *analysis.Pass) (interface{}, error) {
@@ -64,15 +97,19 @@ func (ta *ttempdirAnalyzer) Run(pass *analysis.Pass) (interface{}, error) {
 	}
 
 	inspect.Preorder(nodeFilter, func(node ast.Node) {
-		switch function := node.(type) {
-		case *ast.FuncDecl:
-			ta.checkFuncDecl(pass, function)
-		case *ast.FuncLit:
-			ta.checkFuncLit(pass, function, "anonymous function")
-		}
+		ta.checkAstNode(pass, node)
 	})
 
 	return nil, nil
+}
+
+func (ta *ttempdirAnalyzer) checkAstNode(pass *analysis.Pass, node ast.Node) {
+	switch function := node.(type) {
+	case *ast.FuncDecl:
+		ta.checkFuncDecl(pass, function)
+	case *ast.FuncLit:
+		ta.checkFuncLit(pass, function, "anonymous function")
+	}
 }
 
 func (ta *ttempdirAnalyzer) checkFuncDecl(pass *analysis.Pass, function *ast.FuncDecl) {
