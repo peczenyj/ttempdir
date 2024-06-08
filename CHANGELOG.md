@@ -1,4 +1,11 @@
+## What's Changed
+* Change analyzer program add flagset  prefix
+* add contributing and security docs
+* remove useless plugin
+* update dependency golang.org/x/text from v0.15.0 to v0.16.0
+
 ## What's Changed in v0.3.2
+* update changelog
 * add support to defer statement
 * revert some changes
 * reorganize code and function calls
