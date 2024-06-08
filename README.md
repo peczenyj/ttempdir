@@ -12,6 +12,10 @@ ttempdir detects temporary directories not using t.TempDir
 [![CodeQL](https://github.com/peczenyj/ttempdir/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/peczenyj/ttempdir/actions/workflows/github-code-scanning/codeql)
 [![Dependency Review](https://github.com/peczenyj/ttempdir/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/peczenyj/ttempdir/actions/workflows/dependency-review.yml)
 [![License](https://img.shields.io/github/license/peczenyj/ttempdir)](./LICENSE)
+[![Latest release](https://img.shields.io/github/release/peczenyj/ttempdir.svg)](https://github.com/peczenyj/ttempdir/releases/latest)
+[![GitHub Release Date](https://img.shields.io/github/release-date/peczenyj/ttempdir.svg)](https://github.com/peczenyj/ttempdir/releases/latest)
+[![Last commit](https://img.shields.io/github/last-commit/peczenyj/ttempdir.svg)](https://github.com/peczenyj/ttempdir/commit/HEAD)
+
 
 This code is based on [tenv](https://github.com/sivchari/tenv) analyzer.
 
@@ -56,7 +60,7 @@ func helper() {
 ```
 
 ```console
-go vet -vettool=$(which ttempdir) ./...
+ttempdir ./...
 
 # a
 ./main_test.go:11:14: os.TempDir() should be replaced by `t.TempDir()` in TestMain
@@ -119,19 +123,19 @@ go vet -vettool=(which ttempdir) -ttempdir.all ./...
 ```yaml
 - run:
     name: install ttempdir
-    command: go install github.com/peczenyj/ttempdir
+    command: go install github.com/peczenyj/ttempdir/cmd/ttempdir@latest
 
 - run:
     name: run ttempdir
-    command: go vet -vettool=`which ttempdir` ./...
+    command: ttempdir ./...
 ```
 
 ### GitHub Actions
 
 ```yaml
 - name: install ttempdir
-  run: go install github.com/peczenyj/ttempdir
+  run: go install github.com/peczenyj/ttempdir/cmd/ttempdir@latest
 
 - name: run ttempdir
-  run: go vet -vettool=`which ttempdir` ./...
+  run: ttempdir ./...
 ```
