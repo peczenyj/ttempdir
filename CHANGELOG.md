@@ -1,8 +1,11 @@
-## What's Changed
+## What's Changed in v0.4.0
+* update changelog
 * Change analyzer program add flagset  prefix
 * add contributing and security docs
 * remove useless plugin
 * update dependency golang.org/x/text from v0.15.0 to v0.16.0
+
+**Full Changelog**: https://github.com///compare/v0.3.2...v0.4.0
 
 ## What's Changed in v0.3.2
 * update changelog
