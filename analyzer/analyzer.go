@@ -13,15 +13,15 @@ import (
 
 const (
 	name = "ttempdir"
-	doc  = name + " is analyzer that detects using os.MkdirTemp, ioutil.TempDir or os.TempDir instead of t.TempDir since Go1.17"
+	doc  = name + " is analyzer that detects using os.MkdirTemp, ioutil.TempDir or os.TempDir instead of t.TempDir since Go1.17" //nolint: lll
 	url  = "https://github.com/peczenyj/ttempdir"
 
 	defaultAll               = false
 	defaultMaxRecursionLevel = 5 // arbitrary value, just to avoid too many recursion calls
 
-	// FlagAllName name of the 'all' flag in cli
+	// FlagAllName name of the 'all' flag in cli.
 	FlagAllName = "all"
-	// FlagMaxRecursionLevelName name of the 'max-recursion-level' flag in cli
+	// FlagMaxRecursionLevelName name of the 'max-recursion-level' flag in cli.
 	FlagMaxRecursionLevelName = "max-recursion-level"
 )
 
@@ -45,62 +45,62 @@ func WithFlagPrefix(prefix string) Option {
 }
 
 // New analyzer constructor.
-// Will bind flagset all and max-recursion-level
+// Will bind flagset all and max-recursion-level.
 func New(opts ...Option) *analysis.Analyzer {
-	var c conf
+	var config conf
 
 	for _, opt := range opts {
-		opt(&c)
+		opt(&config)
 	}
 
-	var ta ttempdirAnalyzer
+	var instance ttempdirAnalyzer
 
-	aa := &analysis.Analyzer{
+	analyzer := &analysis.Analyzer{
 		Name: name,
 		Doc:  doc,
 		URL:  url,
-		Run:  ta.Run,
+		Run:  instance.Run,
 		Requires: []*analysis.Analyzer{
 			inspect.Analyzer,
 		},
 	}
 
-	c.bindFlags(&ta, &aa.Flags)
+	config.bindFlags(&instance, &analyzer.Flags)
 
-	return aa
+	return analyzer
 }
 
-func (c *conf) bindFlags(ta *ttempdirAnalyzer, flagSet *flag.FlagSet) {
+func (c *conf) bindFlags(instance *ttempdirAnalyzer, flagSet *flag.FlagSet) {
 	prefix := c.prefix
 
 	if prefix != "" && !strings.HasSuffix(prefix, ".") {
 		prefix += "."
 	}
 
-	flagSet.BoolVar(&ta.all,
+	flagSet.BoolVar(&instance.all,
 		prefix+FlagAllName,
 		defaultAll,
 		"the all option will run against all methods in test file")
 
-	flagSet.UintVar(&ta.maxRecursionLevel,
+	flagSet.UintVar(&instance.maxRecursionLevel,
 		prefix+FlagMaxRecursionLevelName,
 		defaultMaxRecursionLevel,
 		"max recursion level when checking nested arg calls")
 }
 
 func (ta *ttempdirAnalyzer) Run(pass *analysis.Pass) (interface{}, error) {
-	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
+	theInspector, _ := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	nodeFilter := []ast.Node{
 		(*ast.FuncDecl)(nil),
 		(*ast.FuncLit)(nil),
 	}
 
-	inspect.Preorder(nodeFilter, func(node ast.Node) {
+	theInspector.Preorder(nodeFilter, func(node ast.Node) {
 		ta.checkAstNode(pass, node)
 	})
 
-	return nil, nil
+	return nil, nil //nolint:nilnil //no problem in return nil,nil here
 }
 
 func (ta *ttempdirAnalyzer) checkAstNode(pass *analysis.Pass, node ast.Node) {
@@ -142,7 +142,7 @@ func isFilenameFollowingTestingConventions(pass *analysis.Pass, pos token.Pos) b
 	return strings.HasSuffix(fileName, "_test.go")
 }
 
-func (ta *ttempdirAnalyzer) checkStmts(reporterBuilder ReporterBuilder,
+func (ta *ttempdirAnalyzer) checkStmts(reporterBuilder *passReporterBuilder,
 	stmts []ast.Stmt,
 ) {
 	for _, stmt := range stmts {
@@ -150,7 +150,7 @@ func (ta *ttempdirAnalyzer) checkStmts(reporterBuilder ReporterBuilder,
 	}
 }
 
-func (ta *ttempdirAnalyzer) checkSingleStmt(reporterBuilder ReporterBuilder,
+func (ta *ttempdirAnalyzer) checkSingleStmt(reporterBuilder *passReporterBuilder,
 	stmt ast.Stmt,
 ) {
 	switch stmt := stmt.(type) {
@@ -167,7 +167,7 @@ func (ta *ttempdirAnalyzer) checkSingleStmt(reporterBuilder ReporterBuilder,
 	}
 }
 
-func (ta *ttempdirAnalyzer) checkExprStmt(reporterBuilder ReporterBuilder,
+func (ta *ttempdirAnalyzer) checkExprStmt(reporterBuilder *passReporterBuilder,
 	stmt *ast.ExprStmt,
 ) {
 	if callExpr, ok := stmt.X.(*ast.CallExpr); ok {
@@ -175,7 +175,7 @@ func (ta *ttempdirAnalyzer) checkExprStmt(reporterBuilder ReporterBuilder,
 	}
 }
 
-func (ta *ttempdirAnalyzer) checkCallExprRecursive(reporterBuilder ReporterBuilder,
+func (ta *ttempdirAnalyzer) checkCallExprRecursive(reporterBuilder *passReporterBuilder,
 	callExpr *ast.CallExpr,
 	currentRecursionLevel uint,
 ) {
@@ -199,7 +199,7 @@ func (ta *ttempdirAnalyzer) checkCallExprRecursive(reporterBuilder ReporterBuild
 	ta.checkFunctionExpr(reporter, callExpr.Fun)
 }
 
-func (ta *ttempdirAnalyzer) checkIfStmt(reporterBuilder ReporterBuilder,
+func (ta *ttempdirAnalyzer) checkIfStmt(reporterBuilder *passReporterBuilder,
 	stmt *ast.IfStmt,
 ) {
 	if assignStmt, ok := stmt.Init.(*ast.AssignStmt); ok {
@@ -209,7 +209,7 @@ func (ta *ttempdirAnalyzer) checkIfStmt(reporterBuilder ReporterBuilder,
 	}
 }
 
-func (ta *ttempdirAnalyzer) checkAssignStmt(reporter Reporter,
+func (ta *ttempdirAnalyzer) checkAssignStmt(reporter *passReporter,
 	stmt *ast.AssignStmt,
 ) {
 	if rhs, ok := stmt.Rhs[0].(*ast.CallExpr); ok {
@@ -217,19 +217,19 @@ func (ta *ttempdirAnalyzer) checkAssignStmt(reporter Reporter,
 	}
 }
 
-func (ta *ttempdirAnalyzer) checkDeferStmt(reporterBuilder ReporterBuilder,
+func (ta *ttempdirAnalyzer) checkDeferStmt(reporterBuilder *passReporterBuilder,
 	stmt *ast.DeferStmt,
 ) {
 	ta.checkCallExpr(reporterBuilder, stmt.Call)
 }
 
-func (ta *ttempdirAnalyzer) checkForStmt(reporterBuilder ReporterBuilder,
+func (ta *ttempdirAnalyzer) checkForStmt(reporterBuilder *passReporterBuilder,
 	stmt *ast.ForStmt,
 ) {
 	ta.checkStmts(reporterBuilder, stmt.Body.List)
 }
 
-func (ta *ttempdirAnalyzer) checkCallExpr(reporterBuilder ReporterBuilder,
+func (ta *ttempdirAnalyzer) checkCallExpr(reporterBuilder *passReporterBuilder,
 	callExpr *ast.CallExpr,
 ) {
 	ta.checkCallExprRecursive(reporterBuilder,
@@ -238,7 +238,7 @@ func (ta *ttempdirAnalyzer) checkCallExpr(reporterBuilder ReporterBuilder,
 	)
 }
 
-func (ta *ttempdirAnalyzer) checkFunctionExpr(reporter Reporter,
+func (ta *ttempdirAnalyzer) checkFunctionExpr(reporter *passReporter,
 	functionExpr ast.Expr,
 ) {
 	if selectorExpr, ok := functionExpr.(*ast.SelectorExpr); ok {
@@ -246,7 +246,7 @@ func (ta *ttempdirAnalyzer) checkFunctionExpr(reporter Reporter,
 	}
 }
 
-func (ta *ttempdirAnalyzer) checkSelectorExpr(reporter Reporter,
+func (ta *ttempdirAnalyzer) checkSelectorExpr(reporter *passReporter,
 	selectorExpr *ast.SelectorExpr,
 ) {
 	if expression, ok := selectorExpr.X.(*ast.Ident); ok {
@@ -254,7 +254,7 @@ func (ta *ttempdirAnalyzer) checkSelectorExpr(reporter Reporter,
 	}
 }
 
-func (ta *ttempdirAnalyzer) checkIdentifiers(reporter Reporter,
+func (ta *ttempdirAnalyzer) checkIdentifiers(reporter *passReporter,
 	expression *ast.Ident,
 	fieldSelector *ast.Ident,
 ) {
@@ -271,15 +271,8 @@ func (ta *ttempdirAnalyzer) targetRunner(
 	isTestFile bool,
 ) (variableOrPackageName string, found bool) {
 	for _, field := range functionTypeParams.List {
-		switch typ := field.Type.(type) {
-		case *ast.StarExpr:
-			if checkStarExprTarget(typ) {
-				return getFirstFieldName(field)
-			}
-		case *ast.SelectorExpr:
-			if checkSelectorExprTarget(typ) {
-				return getFirstFieldName(field)
-			}
+		if checkFieldType(field.Type, "testing") {
+			return getFirstFieldName(field)
 		}
 	}
 
@@ -290,36 +283,47 @@ func (ta *ttempdirAnalyzer) targetRunner(
 	return "", false
 }
 
-func checkStarExprTarget(typ *ast.StarExpr) bool {
-	selector, ok := typ.X.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-	x, ok := selector.X.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	targetName := x.Name + "." + selector.Sel.Name
-	switch targetName {
-	case "testing.T", "testing.B", "testing.F":
-		return true
+func checkFieldType(fieldType ast.Expr, pkgName string) bool {
+	switch typ := fieldType.(type) {
+	case *ast.StarExpr:
+		return checkStarExprTarget(typ, pkgName, "T", "B", "F")
+	case *ast.SelectorExpr:
+		return checkSelectorExprTarget(typ, pkgName, "TB")
 	default:
 		return false
 	}
 }
 
-func checkSelectorExprTarget(typ *ast.SelectorExpr) bool {
-	x, ok := typ.X.(*ast.Ident)
-	if !ok {
-		return false
+func checkStarExprTarget(typ *ast.StarExpr, pkgName string, selectorNames ...string) bool {
+	if selector, ok := typ.X.(*ast.SelectorExpr); ok {
+		return checkSelectorExprTarget(selector, pkgName, selectorNames...)
 	}
-	targetName := x.Name + "." + typ.Sel.Name
-	return targetName == "testing.TB"
+
+	return false
+}
+
+func checkSelectorExprTarget(selector *ast.SelectorExpr, pkgName string, selectorNames ...string) bool {
+	if x, ok := selector.X.(*ast.Ident); ok {
+		return pkgName == x.Name && find(selector.Sel.Name, selectorNames...)
+	}
+
+	return false
 }
 
 func getFirstFieldName(field *ast.Field) (string, bool) {
 	if len(field.Names) == 0 {
 		return "", false
 	}
+
 	return field.Names[0].Name, true
+}
+
+func find[T comparable](x T, ys ...T) bool {
+	for _, y := range ys {
+		if x == y {
+			return true
+		}
+	}
+
+	return false
 }

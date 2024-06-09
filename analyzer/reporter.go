@@ -6,20 +6,9 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-// Reporter will conclude the ttempdir report.
-type Reporter interface {
-	Report(fullQualifiedFunctionName string)
-}
-
-// ReporterBuilder will prepare a Reporter.
-type ReporterBuilder interface {
-	Build(position token.Pos) Reporter
-	Report(position token.Pos, fullQualifiedFunctionName string)
-}
-
 type passReporter struct {
+	builder  *passReporterBuilder
 	position token.Pos
-	builder  ReporterBuilder
 }
 
 func (r *passReporter) Report(fullQualifiedFunctionName string) {
@@ -32,7 +21,9 @@ type passReporterBuilder struct {
 	targetFunctionName    string
 }
 
-func newReporterBuilder(pass *analysis.Pass, variableOrPackageName, targetFunctionName string) ReporterBuilder {
+func newReporterBuilder(pass *analysis.Pass,
+	variableOrPackageName, targetFunctionName string,
+) *passReporterBuilder {
 	if variableOrPackageName == "" {
 		variableOrPackageName = "testing"
 	}
@@ -44,14 +35,16 @@ func newReporterBuilder(pass *analysis.Pass, variableOrPackageName, targetFuncti
 	}
 }
 
-func (rb *passReporterBuilder) Build(position token.Pos) Reporter {
+func (rb *passReporterBuilder) Build(position token.Pos) *passReporter {
 	return &passReporter{
 		position: position,
 		builder:  rb,
 	}
 }
 
-func (rb *passReporterBuilder) Report(position token.Pos, fullQualifiedFunctionName string) {
+func (rb *passReporterBuilder) Report(position token.Pos,
+	fullQualifiedFunctionName string,
+) {
 	rb.pass.Reportf(position,
 		"%s() should be replaced by `%s.TempDir()` in %s",
 		fullQualifiedFunctionName,

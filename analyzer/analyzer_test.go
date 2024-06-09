@@ -51,11 +51,11 @@ func TestAnalyzer(t *testing.T) {
 	}
 }
 
-func setKV(t *testing.T, analyzer *analysis.Analyzer, flags map[string]string) {
+func setKV(t *testing.T, instance *analysis.Analyzer, flags map[string]string) {
 	t.Helper()
 
 	for k, v := range flags {
-		err := analyzer.Flags.Set(k, v)
+		err := instance.Flags.Set(k, v)
 		if err != nil {
 			t.Fatalf("unable to set k %q v %q: %v", k, v, err)
 		}
