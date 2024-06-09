@@ -1,7 +1,7 @@
 # Ignore binaries defined in cmd
 /ttempdir
 # Ignore coverage files
-.coverage.*
+coverage.*
 .test_report.xml
 # Ignore hidden markdown files (uses these for notes etc. i.e. .NOTES.md, .README.md etc.)
 .*.md
