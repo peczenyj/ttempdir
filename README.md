@@ -15,7 +15,7 @@ ttempdir detects temporary directories not using t.TempDir
 [![Latest release](https://img.shields.io/github/release/peczenyj/ttempdir.svg)](https://github.com/peczenyj/ttempdir/releases/latest)
 [![GitHub Release Date](https://img.shields.io/github/release-date/peczenyj/ttempdir.svg)](https://github.com/peczenyj/ttempdir/releases/latest)
 [![Last commit](https://img.shields.io/github/last-commit/peczenyj/ttempdir.svg)](https://github.com/peczenyj/ttempdir/commit/HEAD)
-
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/peczenyj/ttempdir/blob/main/CONTRIBUTING.md#pull-request-process)
 
 This code is based on [tenv](https://github.com/sivchari/tenv) analyzer.
 
