@@ -1,0 +1,7 @@
+# Ignore CI and release build directory
+/dist
+/build
+/builds
+/tmp
+# Ignore others
+.local

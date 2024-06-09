@@ -1,0 +1,9 @@
+version: "2"
+exclude_patterns:
+  - vendor/
+  - "**/*.pb.gw.go"
+  - "**/*.pb.go"
+  - "**/*.sql_sqlc.go"
+  - "**/*_enumer.go"
+  - "**/mocks.go"
+  - "**/mocks/"
