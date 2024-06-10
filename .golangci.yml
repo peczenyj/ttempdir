@@ -1,7 +1,5 @@
 # Options for analysis running.
 run:
-  # Number of operating system threads (`GOMAXPROCS`) that can execute golangci-lint simultaneously.
-  # If it is explicitly set to 0 (i.e. not the default) then golangci-lint will automatically set the value to match Linux container CPU quota.
   # Default: the number of logical CPUs in the machine
   concurrency: 0
   # Timeout for analysis, e.g. 30s, 5m.
@@ -29,12 +27,8 @@ run:
   # Allowed values: readonly|vendor|mod
   # Default: ""
   modules-download-mode: readonly
-  # Allow multiple parallel golangci-lint instances running.
-  # If false, golangci-lint acquires file lock on start.
   # Default: false
   # allow-parallel-runners: false
-  # Allow multiple golangci-lint instances running, but serialize them around a lock.
-  # If false, golangci-lint exits with an error if it fails to acquire file lock on start.
   # Default: false
   # allow-serial-runners: false
   # Define the Go version limit.
@@ -248,16 +242,6 @@ linters:
 
   disable:
     # Deprecated linters:
-    - deadcode
-    - exhaustivestruct
-    - golint
-    - ifshort
-    - interfacer
-    - maligned
-    - nosnakecase
-    - scopelint
-    - structcheck
-    - varcheck
     # Annoying linters:
     - gci
     - nonamedreturns
@@ -269,9 +253,7 @@ issues:
   #
   # But independently of this option we use default exclude patterns,
   # it can be disabled by `exclude-use-default: false`.
-  # To list all excluded by default patterns execute `golangci-lint run --help`
   #
-  # Default: https://golangci-lint.run/usage/false-positives/#default-exclusions
   # exclude:
   #   - "directive `.+` should be written without leading space as `.+`"
   # Excluding configuration per-path, per-linter, per-text and per-source
@@ -333,7 +315,6 @@ issues:
   #     source: "^//go:generate "
   # Independently of option `exclude` we use default exclude patterns,
   # it can be disabled by this option.
-  # To list all excluded by default patterns execute `golangci-lint run --help`.
   # Default: true
   # exclude-use-default: false
   # If set to true, `exclude` and `exclude-rules` regular expressions become case-sensitive.
@@ -373,7 +354,6 @@ issues:
   # Default: false
   # exclude-generated-strict: true
   # The list of ids of default excludes to include or disable.
-  # https://golangci-lint.run/usage/false-positives/#default-exclusions
   # Default: []
   # include:
   #   - EXC0001
@@ -401,7 +381,6 @@ issues:
   max-same-issues: 0
   # Show only new issues: if there are unstaged changes or untracked files,
   # only those changes are analyzed, else only changes in HEAD~ are analyzed.
-  # It's a super-useful option for integration of golangci-lint into existing large codebase.
   # It's not practical to fix all existing issues at the moment of integration:
   # much better don't allow issues in new code.
   #
