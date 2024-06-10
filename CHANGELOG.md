@@ -1,3 +1,19 @@
+## What's Changed in v0.4.1
+* remove deprecated linters
+* small variable rename
+* fix golangci conf
+* update golangci-lint configuration and fix lint issues
+* Merge branch 'main' of github.com:peczenyj/ttempdir
+* Update README.md
+* fix CONTRIBUTING.md
+* update dot files
+* update dot files
+* fix markdown
+* update .gitignore
+* bump version
+
+**Full Changelog**: https://github.com///compare/v0.4.0...v0.4.1
+
 ## What's Changed in v0.4.0
 * update changelog
 * Change analyzer program add flagset  prefix
