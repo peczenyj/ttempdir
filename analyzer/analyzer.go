@@ -250,15 +250,15 @@ func (ta *ttempdirAnalyzer) checkSelectorExpr(reporter *passReporter,
 	selectorExpr *ast.SelectorExpr,
 ) {
 	if expression, ok := selectorExpr.X.(*ast.Ident); ok {
-		ta.checkIdentifiers(reporter, expression, selectorExpr.Sel)
+		ta.checkIdentifiers(reporter, selectorExpr.Sel.Name, expression.Name)
 	}
 }
 
 func (ta *ttempdirAnalyzer) checkIdentifiers(reporter *passReporter,
-	expression *ast.Ident,
-	fieldSelector *ast.Ident,
+	functionName string,
+	pkgName string,
 ) {
-	fullQualifiedFunctionName := expression.Name + "." + fieldSelector.Name
+	fullQualifiedFunctionName := pkgName + "." + functionName
 
 	switch fullQualifiedFunctionName {
 	case "ioutil.TempDir", "os.MkdirTemp", "os.TempDir":
@@ -295,30 +295,30 @@ func checkFieldType(fieldType ast.Expr, pkgName string) bool {
 }
 
 func checkStarExprTarget(typ *ast.StarExpr, pkgName string, selectorNames ...string) bool {
-	if selector, ok := typ.X.(*ast.SelectorExpr); ok {
-		return checkSelectorExprTarget(selector, pkgName, selectorNames...)
+	if selectorExpr, ok := typ.X.(*ast.SelectorExpr); ok {
+		return checkSelectorExprTarget(selectorExpr, pkgName, selectorNames...)
 	}
 
 	return false
 }
 
-func checkSelectorExprTarget(selector *ast.SelectorExpr, pkgName string, selectorNames ...string) bool {
-	if x, ok := selector.X.(*ast.Ident); ok {
-		return pkgName == x.Name && find(selector.Sel.Name, selectorNames...)
+func checkSelectorExprTarget(selectorExpr *ast.SelectorExpr, pkgName string, selectorNames ...string) bool {
+	if expression, ok := selectorExpr.X.(*ast.Ident); ok {
+		return pkgName == expression.Name && find(selectorExpr.Sel.Name, selectorNames...)
 	}
 
 	return false
 }
 
 func getFirstFieldName(field *ast.Field) (string, bool) {
-	if len(field.Names) == 0 {
-		return "", false
+	if len(field.Names) > 0 {
+		return field.Names[0].Name, true
 	}
 
-	return field.Names[0].Name, true
+	return "", false
 }
 
-func find[T comparable](x T, ys ...T) bool {
+func find(x string, ys ...string) bool {
 	for _, y := range ys {
 		if x == y {
 			return true
