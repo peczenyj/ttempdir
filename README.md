@@ -133,7 +133,7 @@ $ ttempdir -linter.all ./...
 
 #### max-recursion-level
 
-This linter searchs on argument lists in a recursive way. By default we limit to 5 the recursion level.
+This linter searches on argument lists in a recursive way. By default we limit to 5 the recursion level.
 
 For instance, the example below will not emit any analysis report because `os.TempDir()` is called on a 6th level of recursion. If needed this can be updated via flag `-linter.max-recursion-level`.
 
