@@ -196,7 +196,7 @@ func (ta *ttempdirAnalyzer) checkCallExprRecursive(reporterBuilder *passReporter
 
 	reporter := reporterBuilder.Build(callExpr.Pos())
 
-	ta.checkFunctionExpr(reporter, callExpr.Fun)
+	ta.checkFunctionCallExpr(reporter, callExpr)
 }
 
 func (ta *ttempdirAnalyzer) checkIfStmt(reporterBuilder *passReporterBuilder,
@@ -212,8 +212,12 @@ func (ta *ttempdirAnalyzer) checkIfStmt(reporterBuilder *passReporterBuilder,
 func (ta *ttempdirAnalyzer) checkAssignStmt(reporter *passReporter,
 	stmt *ast.AssignStmt,
 ) {
+	if len(stmt.Rhs) == 0 {
+		return
+	}
+
 	if rhs, ok := stmt.Rhs[0].(*ast.CallExpr); ok {
-		ta.checkFunctionExpr(reporter, rhs.Fun)
+		ta.checkFunctionCallExpr(reporter, rhs)
 	}
 }
 
@@ -238,10 +242,10 @@ func (ta *ttempdirAnalyzer) checkCallExpr(reporterBuilder *passReporterBuilder,
 	)
 }
 
-func (ta *ttempdirAnalyzer) checkFunctionExpr(reporter *passReporter,
-	functionExpr ast.Expr,
+func (ta *ttempdirAnalyzer) checkFunctionCallExpr(reporter *passReporter,
+	callExpr *ast.CallExpr,
 ) {
-	if selectorExpr, ok := functionExpr.(*ast.SelectorExpr); ok {
+	if selectorExpr, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
 		ta.checkSelectorExpr(reporter, selectorExpr)
 	}
 }
