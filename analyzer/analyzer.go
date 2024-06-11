@@ -13,7 +13,7 @@ import (
 
 const (
 	name = "ttempdir"
-	doc  = name + " is analyzer that detects using os.MkdirTemp, ioutil.TempDir or os.TempDir instead of t.TempDir since Go1.17" //nolint: lll
+	doc  = name + " is analyzer that detects using os.MkdirTemp, ioutil.TempDir or os.TempDir instead of t.TempDir since Go1.15" //nolint:lll
 	url  = "https://github.com/peczenyj/ttempdir"
 
 	defaultAll               = false
