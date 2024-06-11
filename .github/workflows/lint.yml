@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
-      - run: make info tidy go_fix go_vet
+      - run: make info go_fix go_vet
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
