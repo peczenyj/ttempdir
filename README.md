@@ -3,7 +3,7 @@
 ttempdir detects temporary directories not using t.TempDir
 
 [![tag](https://img.shields.io/github/tag/peczenyj/ttempdir.svg)](https://github.com/peczenyj/ttempdir/releases)
-![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.21-%23007d9c)
+![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.22.9-%23007d9c)
 [![GoDoc](https://pkg.go.dev/badge/github.com/peczenyj/ttempdir)](http://pkg.go.dev/github.com/peczenyj/ttempdir)
 [![Go](https://github.com/peczenyj/ttempdir/actions/workflows/go.yml/badge.svg)](https://github.com/peczenyj/ttempdir/actions/workflows/go.yml)
 [![Lint](https://github.com/peczenyj/ttempdir/actions/workflows/lint.yml/badge.svg)](https://github.com/peczenyj/ttempdir/actions/workflows/lint.yml)
