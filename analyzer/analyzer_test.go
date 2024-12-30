@@ -38,7 +38,6 @@ func TestAnalyzer(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		tc := tc
 		t.Run(tc.label, func(t *testing.T) {
 			testdata := testutil.WithModules(t, analysistest.TestData(), nil)
 
