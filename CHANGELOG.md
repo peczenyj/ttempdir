@@ -1,4 +1,16 @@
 ## What's Changed in v0.4.1
+* Bump the production-dependencies group with 2 updates
+* Bump codecov/codecov-action from 4.5.0 to 5.1.2
+* update yaml files
+* Bump codecov/codecov-action from 4.4.1 to 4.5.0
+* update analyzer doc with proper Go version
+* fix typo in README
+* Update CONTRIBUTING.md
+* bump version
+
+**Full Changelog**: https://github.com///compare/v0.4.1...v0.4.1
+
+## What's Changed in v0.4.1
 * remove deprecated linters
 * small variable rename
 * fix golangci conf
